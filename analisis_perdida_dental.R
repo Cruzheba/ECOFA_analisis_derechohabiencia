@@ -2,7 +2,7 @@
 # ANÁLISIS DE PÉRDIDA DE ÓRGANOS DENTALES EN FUNCIÓN DE DERECHOHABIENCIA
 # ==============================================================================
 # Proyecto: Análisis de pérdida dental y derechohabiencia
-# Repositorio: https://github.com/Cruzheba/ECOFA_poject_1
+# Repositorio: https://github.com/Cruzheba/ECOFA_analisis_derechohabiencia
 # Autor: [Tu nombre]
 # Fecha: 2026-01-09
 # Descripción: Análisis de la asociación entre derechohabiencia y pérdida de
