@@ -6,7 +6,7 @@
 # Autor: [Tu nombre]
 # Fecha: 2026-01-09
 # Descripción: Análisis de la asociación entre derechohabiencia y pérdida de
-#              órganos dentales, ajustando por variables socioeconómicas
+#              órganos dentales, ajustando por variables socioeconómicas.
 # ==============================================================================
 
 # 1. CARGAR LIBRERÍAS ----
