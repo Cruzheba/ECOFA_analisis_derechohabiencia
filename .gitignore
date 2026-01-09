@@ -1,0 +1,12 @@
+# Archivos de datos con información personal
+*.csv
+
+# Archivos de R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
