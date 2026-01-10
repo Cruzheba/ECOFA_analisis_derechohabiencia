@@ -39,7 +39,10 @@ alimentacion_vivienda <- read_csv("alimentacion_vivienda.csv") |>
 # 2.5 Índice de higiene oral
 indice_higiene <- read_csv("indice_higiene_oral.csv") |>
   mutate(clinica_no_expediente = paste(clinica, no_expediente, sep = "-")) |>
-  relocate(clinica_no_expediente, .before = everything())
+  relocate(clinica_no_expediente, .before = everything()) |>
+  # Eliminar columnas de índices de higiene inicial y final (24 columnas)
+  select(-starts_with("ir_i_"), -starts_with("ic_i_"),
+         -starts_with("ir_f_"), -starts_with("ic_f_"))
 
 # 2.6 Resumen de tablas cargadas
 cat("\n========== RESUMEN DE TABLAS CARGADAS ==========\n\n")
