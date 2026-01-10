@@ -56,16 +56,36 @@ cat("\n=======================================================\n")
 cat("✅ TODAS LAS 5 TABLAS CARGADAS EXITOSAMENTE\n")
 cat("✅ Todas las tablas tienen la columna 'clinica_no_expediente'\n")
 
-# 3. EXPLORACIÓN DE VARIABLES CLAVE ----
+# 3. INTEGRACIÓN DE TABLAS ----
+
+# 3.1 Integrar las 5 tablas usando tratamiento_gen como base
+tabla_integrada <- tratamiento_gen |>
+  left_join(interrogación_ficha, by = "clinica_no_expediente") |>
+  left_join(antecedentes_patologicos, by = "clinica_no_expediente") |>
+  left_join(alimentacion_vivienda, by = "clinica_no_expediente") |>
+  left_join(indice_higiene, by = "clinica_no_expediente")
+
+# 3.2 Limpiar columnas duplicadas (id, clinica, no_expediente)
+tabla_integrada <- tabla_integrada |>
+  select(-ends_with(".y"), -ends_with(".x.x"), -ends_with(".y.y")) |>
+  rename(
+    id = id.x,
+    clinica = clinica.x,
+    no_expediente = no_expediente.x
+  )
+
+cat("\n========== TABLA INTEGRADA ==========\n")
+cat("Registros:", nrow(tabla_integrada), "\n")
+cat("Columnas:", ncol(tabla_integrada), "\n")
+cat("✅ Integración completada exitosamente\n\n")
+
+# 4. EXPLORACIÓN DE VARIABLES CLAVE ----
 # TODO: Explorar categorías de institucion_derechohabiencia
 # TODO: Analizar odontogramas para identificar pérdida dental
 # TODO: Revisar variables socioeconómicas disponibles
 
-# 4. SELECCIÓN DE VARIABLES ----
+# 5. SELECCIÓN DE VARIABLES ----
 # TODO: Seleccionar columnas relevantes de cada tabla
-
-# 5. UNIÓN DE TABLAS ----
-# TODO: Unir tablas usando clinica_no_expediente
 
 # 6. LIMPIEZA DE DATOS ----
 # TODO: Manejar valores faltantes
