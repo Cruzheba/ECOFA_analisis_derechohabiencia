@@ -40,7 +40,7 @@ alimentacion_vivienda <- read_csv("alimentacion_vivienda.csv") |>
 indice_higiene <- read_csv("indice_higiene_oral.csv") |>
   mutate(clinica_no_expediente = paste(clinica, no_expediente, sep = "-")) |>
   relocate(clinica_no_expediente, .before = everything()) |>
-  # Eliminar columnas de índices de higiene inicial y final (24 columnas)
+  # Eliminar columnas de índices de higiene inicial y final (24 columnas), no son útiles para nuestra investigación.
   select(-starts_with("ir_i_"), -starts_with("ic_i_"),
          -starts_with("ir_f_"), -starts_with("ic_f_"))
 
