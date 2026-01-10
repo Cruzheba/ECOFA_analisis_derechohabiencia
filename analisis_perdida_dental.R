@@ -79,6 +79,11 @@ cat("Registros:", nrow(tabla_integrada), "\n")
 cat("Columnas:", ncol(tabla_integrada), "\n")
 cat("✅ Integración completada exitosamente\n\n")
 
+# 3.3 Eliminar tablas originales para liberar memoria
+rm(interrogación_ficha, antecedentes_patologicos, tratamiento_gen, 
+   alimentacion_vivienda, indice_higiene)
+cat("✅ Tablas originales eliminadas (solo queda tabla_integrada)\n\n")
+
 # 4. EXPLORACIÓN DE VARIABLES CLAVE ----
 # TODO: Explorar categorías de institucion_derechohabiencia
 # TODO: Analizar odontogramas para identificar pérdida dental
