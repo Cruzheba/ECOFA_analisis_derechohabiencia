@@ -28,8 +28,8 @@ antecedentes_patologicos <- read_csv("antecedentes_personales_patologicos.csv") 
 tratamiento_gen <- read_csv("tratamiento_gen.csv") |>
   mutate(clinica_no_expediente = paste(clinica, no_expediente, sep = "-")) |>
   relocate(clinica_no_expediente, .before = everything()) |>
-  # Filtrar registros verificados (excluir profesor "na", "0" o "NEWTON")
-  filter(!(profesor %in% c("na", "0", "NEWTON")))
+  # Filtrar registros verificados: excluir NA, "na", "0" y "NEWTON"
+  filter(!is.na(profesor), !(profesor %in% c("na", "0", "NEWTON")))
 
 # 2.4 Alimentación y vivienda (variables socioeconómicas)
 alimentacion_vivienda <- read_csv("alimentacion_vivienda.csv") |>
