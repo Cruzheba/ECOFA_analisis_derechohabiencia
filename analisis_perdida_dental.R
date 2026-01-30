@@ -1,12 +1,11 @@
 # ==============================================================================
-# ANÁLISIS DE PÉRDIDA DE ÓRGANOS DENTALES EN FUNCIÓN DE DERECHOHABIENCIA
+# ANÁLISIS DEl ESTADO DE SALUD BUCAL EN FUNCIÓN DE DERECHOHABIENCIA
 # ==============================================================================
-# Proyecto: Análisis de pérdida dental y derechohabiencia
+# Proyecto: Análisis del estado de salid bucal y derechohabiencia
 # Repositorio: https://github.com/Cruzheba/ECOFA_analisis_derechohabiencia
-# Autor: [Tu nombre]
+# Autor: [CRUZ HERNANDEZ BARREDA]
 # Fecha: 2026-01-09
-# Descripción: Análisis de la asociación entre derechohabiencia y pérdida de
-#              órganos dentales, ajustando por variables socioeconómicas.
+# Descripción: Análisis de la asociación entre derechohabiencia y el estado de salud bucal de acuerdo con el indice cpo, ajustando por variables socioeconómicas.
 # ==============================================================================
 
 # 1. CARGAR LIBRERÍAS ----
