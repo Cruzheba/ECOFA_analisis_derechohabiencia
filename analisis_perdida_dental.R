@@ -87,27 +87,46 @@ rm(interrogación_ficha, antecedentes_patologicos, tratamiento_gen,
    alimentacion_vivienda, indice_higiene)
 cat("✅ Tablas originales eliminadas (solo queda tabla_integrada)\n\n")
 
-# 4. EXPLORACIÓN DE VARIABLES CLAVE ----
-# TODO: Explorar categorías de institucion_derechohabiencia
-# TODO: Analizar odontogramas para identificar pérdida dental
-# TODO: Revisar variables socioeconómicas disponibles
 
-# 5. SELECCIÓN DE VARIABLES ----
+# 4. FILTRAR REGISTROS AUTORIZADOS
+
+# Filtrar registros aceptados
+tabla_integrada <- tabla_integrada |>
+  filter(registro_aceptado == TRUE)
+
+cat("✅ Filtro aplicado: solo registros aceptados\n")
+cat("Registros restantes:", nrow(tabla_integrada), "\n\n")
+
+# 5. CREACION DE VARIABLES CLAVE ----
+
+# Calcular edad en años (enteros) a partir de fecha_nacimiento y fecha_inicio
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    edad = as.integer(as.numeric(difftime(fecha_inicio, fecha_nacimiento, units = "days")) / 365.25),
+    .after = fecha_nacimiento
+  )
+
+cat("✅ Columna 'edad' creada exitosamente\n")
+cat("Resumen de la variable edad:\n")
+print(summary(tabla_integrada$edad))
+cat("\n")
+
+# 6. SELECCIÓN DE VARIABLES ----
 # TODO: Seleccionar columnas relevantes de cada tabla
 
-# 6. LIMPIEZA DE DATOS ----
+# 7. LIMPIEZA DE DATOS ----
 # TODO: Manejar valores faltantes
 # TODO: Estandarizar categorías
 # TODO: Crear variables derivadas
 
-# 7. ANÁLISIS EXPLORATORIO ----
+# 8. ANÁLISIS EXPLORATORIO ----
 # TODO: Análisis descriptivo por grupos
 # TODO: Visualizaciones exploratorias
 
-# 8. MODELADO ESTADÍSTICO ----
+# 9. MODELADO ESTADÍSTICO ----
 # TODO: Análisis de asociación entre derechohabiencia y pérdida dental
 # TODO: Ajuste por variables de confusión
 
-# 9. EXPORTAR DATOS PROCESADOS Y ANONIMIZADOS ----
+# 10. EXPORTAR DATOS PROCESADOS Y ANONIMIZADOS ----
 # TODO: Guardar tabla final sin datos personales identificables
 
