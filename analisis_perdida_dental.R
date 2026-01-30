@@ -111,6 +111,30 @@ cat("Resumen de la variable edad:\n")
 print(summary(tabla_integrada$edad))
 cat("\n")
 
+# Filtrar edades válidas (adultos: 18-100 años)
+
+# Contar casos antes del filtro
+total_antes <- nrow(tabla_integrada)
+negativos <- sum(tabla_integrada$edad < 0, na.rm = TRUE)
+menores <- sum(tabla_integrada$edad >= 0 & tabla_integrada$edad < 18, na.rm = TRUE)
+mayores_100 <- sum(tabla_integrada$edad > 100, na.rm = TRUE)
+na_edad <- sum(is.na(tabla_integrada$edad))
+
+# Aplicar filtro
+tabla_integrada <- tabla_integrada |>
+  filter(!is.na(edad), edad >= 18, edad <= 100)
+
+# Reportar resultados
+cat("✅ Filtro de edad aplicado (18-100 años)\n\n")
+cat("=== REGISTROS ELIMINADOS ===\n")
+cat("Edades negativas:", negativos, "\n")
+cat("Menores (0-17 años):", menores, "\n")
+cat("Mayores a 100 años:", mayores_100, "\n")
+cat("Valores NA:", na_edad, "\n")
+cat("Total eliminado:", total_antes - nrow(tabla_integrada), "\n\n")
+cat("=== REGISTROS RESTANTES ===\n")
+cat("Total:", nrow(tabla_integrada), "registros\n\n")
+
 # 6. SELECCIÓN DE VARIABLES ----
 # TODO: Seleccionar columnas relevantes de cada tabla
 
