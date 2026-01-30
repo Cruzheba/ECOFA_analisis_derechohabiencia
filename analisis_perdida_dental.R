@@ -27,9 +27,7 @@ antecedentes_patologicos <- read_csv("antecedentes_personales_patologicos.csv") 
 # 2.3 Tratamiento general
 tratamiento_gen <- read_csv("tratamiento_gen.csv") |>
   mutate(clinica_no_expediente = paste(clinica, no_expediente, sep = "-")) |>
-  relocate(clinica_no_expediente, .before = everything()) |>
-  # Filtrar registros verificados: excluir NA, "na", "0" y "NEWTON", ello implica que sólo haya registros verificados por un profesor
-  filter(!is.na(profesor), !(profesor %in% c("na", "0", "NEWTON")))
+  relocate(clinica_no_expediente, .before = everything()) 
 
 # 2.4 Alimentación y vivienda (variables socioeconómicas)
 alimentacion_vivienda <- read_csv("alimentacion_vivienda.csv") |>
@@ -65,19 +63,25 @@ tabla_integrada <- tratamiento_gen |>
   left_join(alimentacion_vivienda, by = "clinica_no_expediente") |>
   left_join(indice_higiene, by = "clinica_no_expediente")
 
-# 3.2 Limpiar columnas duplicadas (id, clinica, no_expediente)
+# 3.2 Limpiar columnas duplicadas
 tabla_integrada <- tabla_integrada |>
-  select(-ends_with(".y"), -ends_with(".x.x"), -ends_with(".y.y")) |>
+  select(
+    -ends_with(".y"),
+    -ends_with(".x.x"),
+    -ends_with(".y.y")
+  ) |>
+  # Eliminar las columnas sin sufijo (vienen de indice_higiene)
+  select(-any_of(c("id", "clinica", "no_expediente"))) |>
+  # Ahora renombrar las .x quitando el sufijo
   rename(
     id = id.x,
     clinica = clinica.x,
     no_expediente = no_expediente.x
   )
 
-cat("\n========== TABLA INTEGRADA ==========\n")
-cat("Registros:", nrow(tabla_integrada), "\n")
-cat("Columnas:", ncol(tabla_integrada), "\n")
-cat("✅ Integración completada exitosamente\n\n")
+cat("✅ Columnas duplicadas eliminadas\n")
+cat("Dimensiones finales:", nrow(tabla_integrada), "registros ×", 
+    ncol(tabla_integrada), "columnas\n\n")
 
 # 3.3 Eliminar tablas originales para liberar memoria
 rm(interrogación_ficha, antecedentes_patologicos, tratamiento_gen, 
