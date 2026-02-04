@@ -100,6 +100,45 @@ cat("Registros restantes:", nrow(tabla_integrada), "\n\n")
 
 # 5. LIMPIEZA, TRANSFORMACIÓN Y CREACIÓN DE VARIABLES ----
 
+# 5.1 Grupos de edad
+
+# Calcular edad en años (enteros) a partir de fecha_nacimiento y fecha_inicio
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    edad = as.integer(as.numeric(difftime(fecha_inicio, fecha_nacimiento, units = "days")) / 365.25),
+    .after = fecha_nacimiento
+  )
+
+cat("✅ Columna 'edad' creada exitosamente\n")
+cat("Resumen de la variable edad:\n")
+print(summary(tabla_integrada$edad))
+cat("\n")
+
+# Filtrar edades válidas (adultos: 18-100 años)
+
+# Contar casos antes del filtro
+total_antes <- nrow(tabla_integrada)
+negativos <- sum(tabla_integrada$edad < 0, na.rm = TRUE)
+menores <- sum(tabla_integrada$edad >= 0 & tabla_integrada$edad < 18, na.rm = TRUE)
+mayores_100 <- sum(tabla_integrada$edad > 100, na.rm = TRUE)
+na_edad <- sum(is.na(tabla_integrada$edad))
+
+# Aplicar filtro
+tabla_integrada <- tabla_integrada |>
+  filter(!is.na(edad), edad >= 18, edad <= 100)
+
+# Reportar resultados
+cat("✅ Filtro de edad aplicado (18-100 años)\n\n")
+cat("=== REGISTROS ELIMINADOS ===\n")
+cat("Edades negativas:", negativos, "\n")
+cat("Menores (0-17 años):", menores, "\n")
+cat("Mayores a 100 años:", mayores_100, "\n")
+cat("Valores NA:", na_edad, "\n")
+cat("Total eliminado:", total_antes - nrow(tabla_integrada), "\n\n")
+cat("=== REGISTROS RESTANTES ===\n")
+cat("Total:", nrow(tabla_integrada), "registros\n\n")
+
+# 5.2 Índice socioeconómico
 
 # Convertir columnas TRUE/FALSE a 1/0 para variables de vivienda
 tabla_integrada <- tabla_integrada |>
@@ -148,41 +187,6 @@ cat("✅ Variables lógicas convertidas a numéricas (1/0)\n")
 cat("Columnas creadas: cantidad_calidad_num, propia_num, en_pago_num, rentada_num, prestada_num, otra_num\n\n")
 
 
-# Calcular edad en años (enteros) a partir de fecha_nacimiento y fecha_inicio
-tabla_integrada <- tabla_integrada |>
-  mutate(
-    edad = as.integer(as.numeric(difftime(fecha_inicio, fecha_nacimiento, units = "days")) / 365.25),
-    .after = fecha_nacimiento
-  )
-
-cat("✅ Columna 'edad' creada exitosamente\n")
-cat("Resumen de la variable edad:\n")
-print(summary(tabla_integrada$edad))
-cat("\n")
-
-# Filtrar edades válidas (adultos: 18-100 años)
-
-# Contar casos antes del filtro
-total_antes <- nrow(tabla_integrada)
-negativos <- sum(tabla_integrada$edad < 0, na.rm = TRUE)
-menores <- sum(tabla_integrada$edad >= 0 & tabla_integrada$edad < 18, na.rm = TRUE)
-mayores_100 <- sum(tabla_integrada$edad > 100, na.rm = TRUE)
-na_edad <- sum(is.na(tabla_integrada$edad))
-
-# Aplicar filtro
-tabla_integrada <- tabla_integrada |>
-  filter(!is.na(edad), edad >= 18, edad <= 100)
-
-# Reportar resultados
-cat("✅ Filtro de edad aplicado (18-100 años)\n\n")
-cat("=== REGISTROS ELIMINADOS ===\n")
-cat("Edades negativas:", negativos, "\n")
-cat("Menores (0-17 años):", menores, "\n")
-cat("Mayores a 100 años:", mayores_100, "\n")
-cat("Valores NA:", na_edad, "\n")
-cat("Total eliminado:", total_antes - nrow(tabla_integrada), "\n\n")
-cat("=== REGISTROS RESTANTES ===\n")
-cat("Total:", nrow(tabla_integrada), "registros\n\n")
 
 
 
