@@ -97,7 +97,56 @@ tabla_integrada <- tabla_integrada |>
 cat("✅ Filtro aplicado: solo registros aceptados\n")
 cat("Registros restantes:", nrow(tabla_integrada), "\n\n")
 
-# 5. CREACION DE VARIABLES CLAVE ----
+
+# 5. LIMPIEZA, TRANSFORMACIÓN Y CREACIÓN DE VARIABLES ----
+
+
+# Convertir columnas TRUE/FALSE a 1/0 para variables de vivienda
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    cantidad_calidad_num = as.numeric(cantidad_calidad),
+    .after = cantidad_calidad
+  ) |>
+  mutate(
+    propia_num = as.numeric(propia),
+    .after = propia
+  ) |>
+  mutate(
+    en_pago_num = as.numeric(en_pago),
+    .after = en_pago
+  ) |>
+  mutate(
+    rentada_num = as.numeric(rentada),
+    .after = rentada
+  ) |>
+  mutate(
+    prestada_num = as.numeric(prestada),
+    .after = prestada
+  ) |>
+  mutate(
+    otra_num = as.numeric(otra),
+    .after = otra
+  ) |>
+  mutate(
+    agua_intradomiciliaria_num = as.numeric(agua_intradomiciliaria),
+    .after = agua_intradomiciliaria
+  ) |>
+  mutate(
+    drenaje_num = as.numeric(drenaje),
+    .after = drenaje
+  ) |>
+  mutate(
+    pavimentacion_num = as.numeric(pavimentacion),
+    .after = pavimentacion
+  ) |>
+  mutate(
+    luz_num = as.numeric(luz),
+    .after = luz
+  )
+
+cat("✅ Variables lógicas convertidas a numéricas (1/0)\n")
+cat("Columnas creadas: cantidad_calidad_num, propia_num, en_pago_num, rentada_num, prestada_num, otra_num\n\n")
+
 
 # Calcular edad en años (enteros) a partir de fecha_nacimiento y fecha_inicio
 tabla_integrada <- tabla_integrada |>
@@ -135,13 +184,7 @@ cat("Total eliminado:", total_antes - nrow(tabla_integrada), "\n\n")
 cat("=== REGISTROS RESTANTES ===\n")
 cat("Total:", nrow(tabla_integrada), "registros\n\n")
 
-# 6. SELECCIÓN DE VARIABLES ----
-# TODO: Seleccionar columnas relevantes de cada tabla
 
-# 7. LIMPIEZA DE DATOS ----
-# TODO: Manejar valores faltantes
-# TODO: Estandarizar categorías
-# TODO: Crear variables derivadas
 
 # 8. ANÁLISIS EXPLORATORIO ----
 # TODO: Análisis descriptivo por grupos
