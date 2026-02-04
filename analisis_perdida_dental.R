@@ -129,30 +129,66 @@ cat("\n")
 # 5.1.2 Filtrar edades válidas (adultos: 18-100 años)
 
 # Contar casos antes del filtro
-total_antes <- nrow(tabla_integrada)
+
 negativos <- sum(tabla_integrada$edad < 0, na.rm = TRUE)
 menores <- sum(tabla_integrada$edad >= 0 & tabla_integrada$edad < 18, na.rm = TRUE)
 mayores_100 <- sum(tabla_integrada$edad > 100, na.rm = TRUE)
 na_edad <- sum(is.na(tabla_integrada$edad))
+excluidos_por_edad <- negativos + menores + mayores_100 + na_edad
 
 # Aplicar filtro
 tabla_integrada <- tabla_integrada |>
   filter(!is.na(edad), edad >= 18, edad <= 100)
 
+cantidad_registros_edad <- nrow(tabla_integrada)
+
 # 5.1.3 Reportar resultados
 cat("✅ Filtro de edad aplicado (18-100 años)\n\n")
+
 cat("=== REGISTROS ELIMINADOS ===\n")
+
 cat("Edades negativas:", negativos, "\n")
 cat("Menores (0-17 años):", menores, "\n")
 cat("Mayores a 100 años:", mayores_100, "\n")
 cat("Valores NA:", na_edad, "\n")
-cat("Total eliminado:", total_antes - nrow(tabla_integrada), "\n\n")
+cat("Total eliminado:", cantidad_registros_autorizados - nrow(tabla_integrada), "\n\n")
 cat("=== REGISTROS RESTANTES ===\n")
 cat("Total:", nrow(tabla_integrada), "registros\n\n")
 
 # 5.2 Índice socioeconómico
 
-# Eliminar registros que en las columnas "no_habitaciones", "no_personas_en_vivienda", "no_personas_en_familia", "no_personas_trabajan", "no_personas_menores_15" tengan valor 0.
+# 5.2.1 Generación de indice de hacinamiento
+
+# Eliminar registros que en las columnas "no_habitaciones" y "no_personas_en_vivienda" tengan valor "0"
+
+# Contar registros antes del filtro
+total_antes_hacinamiento <- nrow(tabla_integrada)
+
+# Aplicar filtro
+tabla_integrada <- tabla_integrada |>
+  filter(no_habitaciones != 0, no_personas_en_vivienda != 0)
+
+# Calcular registros eliminados y restantes
+excluidos_hacinamiento <- total_antes_hacinamiento - nrow(tabla_integrada)
+cantidad_registros_hacinamiento <- nrow(tabla_integrada)
+
+# Reportar resultados
+cat("✅ Filtro de hacinamiento aplicado\n\n")
+cat("=== REGISTROS ELIMINADOS ===\n")
+cat("Registros con no_habitaciones = 0 o no_personas_en_vivienda = 0:", excluidos_hacinamiento, "\n")
+cat("Porcentaje eliminado:", round(excluidos_hacinamiento / total_antes_hacinamiento * 100, 2), "%\n\n")
+cat("=== REGISTROS RESTANTES ===\n")
+cat("cantidad_registros_hacinamiento =", cantidad_registros_hacinamiento, "registros\n\n")
+
+
+
+# 5.2.2 Generación de indice de dependencia económica
+
+# Eliminar registros que en las columnas "no_personas_en_familia" tengan valor 0
+
+
+
+# "no_personas_trabajan", "no_personas_menores_15" tengan valor 0.
 
 
 
