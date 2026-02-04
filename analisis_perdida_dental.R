@@ -87,22 +87,34 @@ rm(interrogación_ficha, antecedentes_patologicos, tratamiento_gen,
    alimentacion_vivienda, indice_higiene)
 cat("✅ Tablas originales eliminadas (solo queda tabla_integrada)\n\n")
 
+# 3.4 Reportar resultados
+
+cantidad_registros_iniciales <- nrow(tabla_integrada)
+
+cat("✅ Variable creada: cantidad_registros_iniciales =", cantidad_registros_iniciales, "\n\n")
 
 # 4. FILTRAR REGISTROS AUTORIZADOS
 
-# Filtrar registros aceptados
+# 4.1 Filtrar registros aceptados
 tabla_integrada <- tabla_integrada |>
   filter(registro_aceptado == TRUE)
 
 cat("✅ Filtro aplicado: solo registros aceptados\n")
 cat("Registros restantes:", nrow(tabla_integrada), "\n\n")
 
+# 4.2 Reportar resultados
+
+cantidad_registros_autorizados <- nrow(tabla_integrada)
+
+cat("✅ Variable creada: cantidad_registros_autorizados =", cantidad_registros_autorizados, "\n")
+cat("Registros eliminados:", cantidad_registros_iniciales - cantidad_registros_autorizados, 
+    "(", round((cantidad_registros_iniciales - cantidad_registros_autorizados) / cantidad_registros_iniciales * 100, 2), "%)\n\n")
 
 # 5. LIMPIEZA, TRANSFORMACIÓN Y CREACIÓN DE VARIABLES ----
 
 # 5.1 Grupos de edad
 
-# Calcular edad en años (enteros) a partir de fecha_nacimiento y fecha_inicio
+# 5.1.1 Calcular edad en años (enteros) a partir de fecha_nacimiento y fecha_inicio
 tabla_integrada <- tabla_integrada |>
   mutate(
     edad = as.integer(as.numeric(difftime(fecha_inicio, fecha_nacimiento, units = "days")) / 365.25),
@@ -114,7 +126,7 @@ cat("Resumen de la variable edad:\n")
 print(summary(tabla_integrada$edad))
 cat("\n")
 
-# Filtrar edades válidas (adultos: 18-100 años)
+# 5.1.2 Filtrar edades válidas (adultos: 18-100 años)
 
 # Contar casos antes del filtro
 total_antes <- nrow(tabla_integrada)
@@ -127,7 +139,7 @@ na_edad <- sum(is.na(tabla_integrada$edad))
 tabla_integrada <- tabla_integrada |>
   filter(!is.na(edad), edad >= 18, edad <= 100)
 
-# Reportar resultados
+# 5.1.3 Reportar resultados
 cat("✅ Filtro de edad aplicado (18-100 años)\n\n")
 cat("=== REGISTROS ELIMINADOS ===\n")
 cat("Edades negativas:", negativos, "\n")
@@ -139,6 +151,10 @@ cat("=== REGISTROS RESTANTES ===\n")
 cat("Total:", nrow(tabla_integrada), "registros\n\n")
 
 # 5.2 Índice socioeconómico
+
+# Eliminar registros que en las columnas "no_habitaciones", "no_personas_en_vivienda", "no_personas_en_familia", "no_personas_trabajan", "no_personas_menores_15" tengan valor 0.
+
+
 
 # Convertir columnas TRUE/FALSE a 1/0 para variables de vivienda
 tabla_integrada <- tabla_integrada |>
