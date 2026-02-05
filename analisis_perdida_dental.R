@@ -180,7 +180,23 @@ cat("Porcentaje eliminado:", round(excluidos_hacinamiento / total_antes_hacinami
 cat("=== REGISTROS RESTANTES ===\n")
 cat("cantidad_registros_hacinamiento =", cantidad_registros_hacinamiento, "registros\n\n")
 
+# Crear índice
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    indice_hacinamiento = no_personas_en_vivienda / no_habitaciones,
+    .after = no_personas_en_vivienda
+  )
 
+cat("✅ Índice de hacinamiento creado\n\n")
+cat("=== RESUMEN DEL ÍNDICE DE HACINAMIENTO ===\n")
+print(summary(tabla_integrada$indice_hacinamiento))
+cat("\n")
+
+# Clasificación según OMS (opcional):
+# < 2.5 = Sin hacinamiento
+# 2.5 - 3.4 = Hacinamiento medio
+# 3.5 - 4.9 = Hacinamiento alto
+# >= 5.0 = Hacinamiento crítico
 
 # 5.2.2 Generación de indice de dependencia económica
 
