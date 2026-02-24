@@ -192,6 +192,21 @@ cat("=== RESUMEN DEL ÍNDICE DE HACINAMIENTO ===\n")
 print(summary(tabla_integrada$indice_hacinamiento))
 cat("\n")
 
+# Crear indicador CCEV según CONEVAL
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    CCEV = if_else(indice_hacinamiento > 2.5, 1, 0),
+    .after = indice_hacinamiento
+  )
+
+cat("✅ Columna CCEV creada (metodología CONEVAL)\n\n")
+cat("=== DISTRIBUCIÓN DE CARENCIA POR HACINAMIENTO (CCEV) ===\n")
+cat("Sin carencia (CCEV = 0, hacinamiento ≤ 2.5):", sum(tabla_integrada$CCEV == 0), 
+    "(", round(sum(tabla_integrada$CCEV == 0) / nrow(tabla_integrada) * 100, 2), "%)\n")
+cat("Con carencia (CCEV = 1, hacinamiento > 2.5):", sum(tabla_integrada$CCEV == 1), 
+    "(", round(sum(tabla_integrada$CCEV == 1) / nrow(tabla_integrada) * 100, 2), "%)\n\n")
+
+
 # Clasificación según OMS (opcional):
 # < 2.5 = Sin hacinamiento
 # 2.5 - 3.4 = Hacinamiento medio
