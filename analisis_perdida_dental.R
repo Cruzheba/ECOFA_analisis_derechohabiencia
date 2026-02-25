@@ -192,19 +192,19 @@ cat("=== RESUMEN DEL ÍNDICE DE HACINAMIENTO ===\n")
 print(summary(tabla_integrada$indice_hacinamiento))
 cat("\n")
 
-# Crear indicador CCEV según CONEVAL
+# Crear indicador CCEV_hacinamiento según CONEVAL
 tabla_integrada <- tabla_integrada |>
   mutate(
-    CCEV = if_else(indice_hacinamiento > 2.5, 1, 0),
+    CCEV_hacinamiento = if_else(indice_hacinamiento > 2.5, 1, 0),
     .after = indice_hacinamiento
   )
 
-cat("✅ Columna CCEV creada (metodología CONEVAL)\n\n")
-cat("=== DISTRIBUCIÓN DE CARENCIA POR HACINAMIENTO (CCEV) ===\n")
-cat("Sin carencia (CCEV = 0, hacinamiento ≤ 2.5):", sum(tabla_integrada$CCEV == 0), 
-    "(", round(sum(tabla_integrada$CCEV == 0) / nrow(tabla_integrada) * 100, 2), "%)\n")
-cat("Con carencia (CCEV = 1, hacinamiento > 2.5):", sum(tabla_integrada$CCEV == 1), 
-    "(", round(sum(tabla_integrada$CCEV == 1) / nrow(tabla_integrada) * 100, 2), "%)\n\n")
+cat("✅ Columna CCEV_hacinamiento creada (metodología CONEVAL)\n\n")
+cat("=== DISTRIBUCIÓN DE CARENCIA POR HACINAMIENTO (CCEV_hacinamiento) ===\n")
+cat("Sin carencia (CCEV_hacinamiento = 0, hacinamiento ≤ 2.5):", sum(tabla_integrada$CCEV_hacinamiento == 0), 
+    "(", round(sum(tabla_integrada$CCEV_hacinamiento == 0) / nrow(tabla_integrada) * 100, 2), "%)\n")
+cat("Con carencia (CCEV_hacinamiento = 1, hacinamiento > 2.5):", sum(tabla_integrada$CCEV_hacinamiento == 1), 
+    "(", round(sum(tabla_integrada$CCEV_hacinamiento == 1) / nrow(tabla_integrada) * 100, 2), "%)\n\n")
 
 
 # Clasificación según OMS (opcional):
@@ -220,56 +220,6 @@ cat("Con carencia (CCEV = 1, hacinamiento > 2.5):", sum(tabla_integrada$CCEV == 
 
 
 # "no_personas_trabajan", "no_personas_menores_15" tengan valor 0.
-
-
-
-# Convertir columnas TRUE/FALSE a 1/0 para variables de vivienda
-tabla_integrada <- tabla_integrada |>
-  mutate(
-    cantidad_calidad_num = as.numeric(cantidad_calidad),
-    .after = cantidad_calidad
-  ) |>
-  mutate(
-    propia_num = as.numeric(propia),
-    .after = propia
-  ) |>
-  mutate(
-    en_pago_num = as.numeric(en_pago),
-    .after = en_pago
-  ) |>
-  mutate(
-    rentada_num = as.numeric(rentada),
-    .after = rentada
-  ) |>
-  mutate(
-    prestada_num = as.numeric(prestada),
-    .after = prestada
-  ) |>
-  mutate(
-    otra_num = as.numeric(otra),
-    .after = otra
-  ) |>
-  mutate(
-    agua_intradomiciliaria_num = as.numeric(agua_intradomiciliaria),
-    .after = agua_intradomiciliaria
-  ) |>
-  mutate(
-    drenaje_num = as.numeric(drenaje),
-    .after = drenaje
-  ) |>
-  mutate(
-    pavimentacion_num = as.numeric(pavimentacion),
-    .after = pavimentacion
-  ) |>
-  mutate(
-    luz_num = as.numeric(luz),
-    .after = luz
-  )
-
-cat("✅ Variables lógicas convertidas a numéricas (1/0)\n")
-cat("Columnas creadas: cantidad_calidad_num, propia_num, en_pago_num, rentada_num, prestada_num, otra_num\n\n")
-
-
 
 
 
