@@ -1,7 +1,7 @@
 # ==============================================================================
 # ANÁLISIS DEl ESTADO DE SALUD BUCAL EN FUNCIÓN DE DERECHOHABIENCIA
 # ==============================================================================
-# Proyecto: Análisis del estado de salid bucal y derechohabiencia
+# Proyecto: Evaluación del estado de salud bucal en pacientes que acuden a los servicios odontológicos universitarios: Análisis de la asociación con la pobreza y la derechohabiencia a servicios de salud.
 # Repositorio: https://github.com/Cruzheba/ECOFA_analisis_derechohabiencia
 # Autor: [CRUZ HERNANDEZ BARREDA]
 # Fecha: 2026-01-09
