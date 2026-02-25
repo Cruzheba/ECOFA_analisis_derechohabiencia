@@ -192,7 +192,7 @@ cat("=== RESUMEN DEL ÍNDICE DE HACINAMIENTO ===\n")
 print(summary(tabla_integrada$indice_hacinamiento))
 cat("\n")
 
-# Crear indicador CCEV_hacinamiento según CONEVAL
+# Crear indicador de carencia por calidad y espacios de la vivienda (CCEV)según CONEVAL
 tabla_integrada <- tabla_integrada |>
   mutate(
     CCEV_hacinamiento = if_else(indice_hacinamiento > 2.5, 1, 0),
@@ -205,6 +205,30 @@ cat("Sin carencia (CCEV_hacinamiento = 0, hacinamiento ≤ 2.5):", sum(tabla_int
     "(", round(sum(tabla_integrada$CCEV_hacinamiento == 0) / nrow(tabla_integrada) * 100, 2), "%)\n")
 cat("Con carencia (CCEV_hacinamiento = 1, hacinamiento > 2.5):", sum(tabla_integrada$CCEV_hacinamiento == 1), 
     "(", round(sum(tabla_integrada$CCEV_hacinamiento == 1) / nrow(tabla_integrada) * 100, 2), "%)\n\n")
+
+
+# Crear indicadores de carencia por servicios básicos (CSBV) según CONEVAL
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    CSBV_agua = if_else(agua_intradomiciliaria == FALSE, 1, 0),
+    .after = agua_intradomiciliaria
+  ) |>
+  mutate(
+    CSBV_drenaje = if_else(drenaje == FALSE, 1, 0),
+    .after = drenaje
+  ) |>
+  mutate(
+    CSBV_luz = if_else(luz == FALSE, 1, 0),
+    .after = luz
+  )
+
+cat("✅ Columnas CSBV creadas (Carencia por Servicios Básicos en la Vivienda)\n")
+cat("CSBV_agua: Con carencia (1):", sum(tabla_integrada$CSBV_agua == 1, na.rm = TRUE), 
+    "(", round(sum(tabla_integrada$CSBV_agua == 1, na.rm = TRUE) / nrow(tabla_integrada) * 100, 2), "%)\n")
+cat("CSBV_drenaje: Con carencia (1):", sum(tabla_integrada$CSBV_drenaje == 1, na.rm = TRUE), 
+    "(", round(sum(tabla_integrada$CSBV_drenaje == 1, na.rm = TRUE) / nrow(tabla_integrada) * 100, 2), "%)\n")
+cat("CSBV_luz: Con carencia (1):", sum(tabla_integrada$CSBV_luz == 1, na.rm = TRUE), 
+    "(", round(sum(tabla_integrada$CSBV_luz == 1, na.rm = TRUE) / nrow(tabla_integrada) * 100, 2), "%)\n\n")
 
 
 # Clasificación según OMS (opcional):
