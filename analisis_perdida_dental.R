@@ -155,6 +155,11 @@ cat("Total eliminado:", cantidad_registros_autorizados - nrow(tabla_integrada), 
 cat("=== REGISTROS RESTANTES ===\n")
 cat("Total:", nrow(tabla_integrada), "registros\n\n")
 
+
+
+
+
+
 # 5.2 Índice socioeconómico
 
 # 5.2.1 Generación de indice de hacinamiento
