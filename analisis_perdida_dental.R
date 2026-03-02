@@ -187,7 +187,27 @@ print(table(tabla_integrada$grupo_edad, useNA = "ifany"))
 cat("\n")
 
 
+# 5.1.3 Eliminar registros que no contienen información sobre el índice CPO-D inicial (todas las columnas del índice = 0)
+# Filtrar registros con CPO-D inicial válido
+# Eliminar registros donde TODAS las columnas del índice CPO-D inicial sean 0
+antes_filtro_cpod <- nrow(tabla_integrada)
 
+tabla_integrada <- tabla_integrada |>
+  filter(!(inicial_cariados == 0 & inicial_perdidos == 0 & 
+           inicial_obturados == 0 & inicial_total_dientes == 0))
+
+despues_filtro_cpod <- nrow(tabla_integrada)
+
+# Reportar resultados
+cat("✅ Filtro de CPO-D inicial aplicado\n\n")
+cat("=== REGISTROS ELIMINADOS ===\n")
+cat("Registros con CPO-D inicial = 0 (todas las columnas):", 
+    antes_filtro_cpod - despues_filtro_cpod, "\n")
+cat("Porcentaje eliminado:", 
+    round((antes_filtro_cpod - despues_filtro_cpod) / antes_filtro_cpod * 100, 2), "%\n\n")
+cat("=== REGISTROS RESTANTES ===\n")
+cat("antes_filtro_cpod =", antes_filtro_cpod, "\n")
+cat("despues_filtro_cpod =", despues_filtro_cpod, "\n\n")
 
 
 
