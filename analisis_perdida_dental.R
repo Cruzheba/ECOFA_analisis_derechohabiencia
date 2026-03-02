@@ -156,99 +156,38 @@ cat("=== REGISTROS RESTANTES ===\n")
 cat("Total:", nrow(tabla_integrada), "registros\n\n")
 
 
-
-
-
-
-# 5.2 Índice socioeconómico
-
-# 5.2.1 Generación de indice de hacinamiento
-
-# Eliminar registros que en las columnas "no_habitaciones" y "no_personas_en_vivienda" tengan valor "0"
-
-# Contar registros antes del filtro
-total_antes_hacinamiento <- nrow(tabla_integrada)
-
-# Aplicar filtro
-tabla_integrada <- tabla_integrada |>
-  filter(no_habitaciones != 0, no_personas_en_vivienda != 0)
-
-# Calcular registros eliminados y restantes
-excluidos_hacinamiento <- total_antes_hacinamiento - nrow(tabla_integrada)
-cantidad_registros_hacinamiento <- nrow(tabla_integrada)
-
-# Reportar resultados
-cat("✅ Filtro de hacinamiento aplicado\n\n")
-cat("=== REGISTROS ELIMINADOS ===\n")
-cat("Registros con no_habitaciones = 0 o no_personas_en_vivienda = 0:", excluidos_hacinamiento, "\n")
-cat("Porcentaje eliminado:", round(excluidos_hacinamiento / total_antes_hacinamiento * 100, 2), "%\n\n")
-cat("=== REGISTROS RESTANTES ===\n")
-cat("cantidad_registros_hacinamiento =", cantidad_registros_hacinamiento, "registros\n\n")
-
-# Crear índice
+# Crear grupos de edad
 tabla_integrada <- tabla_integrada |>
   mutate(
-    indice_hacinamiento = no_personas_en_vivienda / no_habitaciones,
-    .after = no_personas_en_vivienda
+    grupo_edad = case_when(
+      edad >= 18 & edad <= 24 ~ "18-24",
+      edad >= 25 & edad <= 29 ~ "25-29",
+      edad >= 30 & edad <= 34 ~ "30-34",
+      edad >= 35 & edad <= 39 ~ "35-39",
+      edad >= 40 & edad <= 44 ~ "40-44",
+      edad >= 45 & edad <= 49 ~ "45-49",
+      edad >= 50 & edad <= 54 ~ "50-54",
+      edad >= 55 & edad <= 59 ~ "55-59",
+      edad >= 60 & edad <= 64 ~ "60-64",
+      edad >= 65 & edad <= 69 ~ "65-69",
+      edad >= 70 & edad <= 74 ~ "70-74",
+      edad >= 75 & edad <= 79 ~ "75-79",
+      edad >= 80 & edad <= 84 ~ "80-84",
+      edad >= 85 & edad <= 89 ~ "85-89",
+      edad >= 90 & edad <= 94 ~ "90-94",
+      edad >= 95 & edad <= 100 ~ "95-100",
+      TRUE ~ NA_character_
+    ),
+    .after = edad
   )
 
-cat("✅ Índice de hacinamiento creado\n\n")
-cat("=== RESUMEN DEL ÍNDICE DE HACINAMIENTO ===\n")
-print(summary(tabla_integrada$indice_hacinamiento))
+cat("✅ Columna 'grupo_edad' creada exitosamente\n\n")
+cat("=== DISTRIBUCIÓN POR GRUPOS DE EDAD ===\n")
+print(table(tabla_integrada$grupo_edad, useNA = "ifany"))
 cat("\n")
 
-# Crear indicador de carencia por calidad y espacios de la vivienda (CCEV)según CONEVAL
-tabla_integrada <- tabla_integrada |>
-  mutate(
-    CCEV_hacinamiento = if_else(indice_hacinamiento > 2.5, 1, 0),
-    .after = indice_hacinamiento
-  )
-
-cat("✅ Columna CCEV_hacinamiento creada (metodología CONEVAL)\n\n")
-cat("=== DISTRIBUCIÓN DE CARENCIA POR HACINAMIENTO (CCEV_hacinamiento) ===\n")
-cat("Sin carencia (CCEV_hacinamiento = 0, hacinamiento ≤ 2.5):", sum(tabla_integrada$CCEV_hacinamiento == 0), 
-    "(", round(sum(tabla_integrada$CCEV_hacinamiento == 0) / nrow(tabla_integrada) * 100, 2), "%)\n")
-cat("Con carencia (CCEV_hacinamiento = 1, hacinamiento > 2.5):", sum(tabla_integrada$CCEV_hacinamiento == 1), 
-    "(", round(sum(tabla_integrada$CCEV_hacinamiento == 1) / nrow(tabla_integrada) * 100, 2), "%)\n\n")
 
 
-# Crear indicadores de carencia por servicios básicos (CSBV) según CONEVAL
-tabla_integrada <- tabla_integrada |>
-  mutate(
-    CSBV_agua = if_else(agua_intradomiciliaria == FALSE, 1, 0),
-    .after = agua_intradomiciliaria
-  ) |>
-  mutate(
-    CSBV_drenaje = if_else(drenaje == FALSE, 1, 0),
-    .after = drenaje
-  ) |>
-  mutate(
-    CSBV_luz = if_else(luz == FALSE, 1, 0),
-    .after = luz
-  )
-
-cat("✅ Columnas CSBV creadas (Carencia por Servicios Básicos en la Vivienda)\n")
-cat("CSBV_agua: Con carencia (1):", sum(tabla_integrada$CSBV_agua == 1, na.rm = TRUE), 
-    "(", round(sum(tabla_integrada$CSBV_agua == 1, na.rm = TRUE) / nrow(tabla_integrada) * 100, 2), "%)\n")
-cat("CSBV_drenaje: Con carencia (1):", sum(tabla_integrada$CSBV_drenaje == 1, na.rm = TRUE), 
-    "(", round(sum(tabla_integrada$CSBV_drenaje == 1, na.rm = TRUE) / nrow(tabla_integrada) * 100, 2), "%)\n")
-cat("CSBV_luz: Con carencia (1):", sum(tabla_integrada$CSBV_luz == 1, na.rm = TRUE), 
-    "(", round(sum(tabla_integrada$CSBV_luz == 1, na.rm = TRUE) / nrow(tabla_integrada) * 100, 2), "%)\n\n")
-
-
-# Clasificación según OMS (opcional):
-# < 2.5 = Sin hacinamiento
-# 2.5 - 3.4 = Hacinamiento medio
-# 3.5 - 4.9 = Hacinamiento alto
-# >= 5.0 = Hacinamiento crítico
-
-# 5.2.2 Generación de indice de dependencia económica
-
-# Eliminar registros que en las columnas "no_personas_en_familia" tengan valor 0
-
-
-
-# "no_personas_trabajan", "no_personas_menores_15" tengan valor 0.
 
 
 
