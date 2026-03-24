@@ -212,7 +212,7 @@ cat("antes_filtro_cpod =", antes_filtro_cpod, "\n")
 cat("despues_filtro_cpod =", despues_filtro_cpod, "\n\n")
 
 
-# 5.3 Estandarización de valores de derechohabiencia
+# 5.3 Limpieza, estandarización de valores de derechohabiencia (norrmalización y recategorización)
 
 # Función para estandarizar instituciones de derechohabiencia
 tabla_integrada <- tabla_integrada |>
@@ -220,7 +220,7 @@ tabla_integrada <- tabla_integrada |>
     institucion_derechohabiencia_std = case_when(
       # IMSS (incluyendo variantes)
       str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
-                 "^IMSS|^INSTITUTO MEXICANO DEL SEGURO") ~ "IMSS",
+                 "^IMSS|^INSTITUTO MEXICANO DEL SEGURO|^SEGURO SOCIAL|^IMMS") ~ "IMSS",
       
       # ISSSTE
       str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
@@ -228,11 +228,11 @@ tabla_integrada <- tabla_integrada |>
       
       # ISSEMYM
       str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
-                 "^ISSEMYM|^ISEMYM") ~ "ISSEMYM",
+                 "^ISSEMYM|^ISEMYM|^ISSEMYN|^ISSEMIN") ~ "ISSEMYM",
       
       # ISSFAM
       str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
-                 "^ISSFAM") ~ "ISSFAM",
+                 "^ISSFAM|^MILITAR") ~ "ISSFAM",
       
       # PEMEX
       str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
@@ -249,7 +249,7 @@ tabla_integrada <- tabla_integrada |>
       # Sin derechohabiencia (incluye NA, SSA y múltiples variantes)
       is.na(institucion_derechohabiencia) | 
       str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
-                 "^NINGUN|^NO TIENE|^NO$|^N$|^NA$|^NO TENGO|^SIN |^NINGUNA|^SSA|^SECRETARIA DE SALUD") ~ "SIN DERECHOHABIENCIA",
+                 "^NINGUN|^NO TIENE|^NO$|^N$|^NA$|^NO TENGO|^SIN |^NINGUNA|^SSA|^S/S|^N O TIENE|^NO PERTENECE|^0|^NIGUNO|^\\*+|^-|^NO CUENTA|^SECRETARIA DE SALUD") ~ "SIN DERECHOHABIENCIA",
       
       # Otros
       str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
