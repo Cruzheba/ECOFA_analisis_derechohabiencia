@@ -266,6 +266,150 @@ tabla_integrada |>
 
 
 
+# 5.4 Limpieza, estandarización de valores de escolaridad (norrmalización y recategorización)
+
+# 5.4.1 Estandarizar escolaridad (versión mejorada)
+
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    escolaridad_std = case_when(
+      # Sin escolaridad
+      is.na(escolaridad) |
+      str_detect(str_to_upper(str_trim(escolaridad)), 
+                 "^SIN |^NINGUN|^NO$|^NINGUNA|^NO TIENE|^N$|^0$|^-+$|^\\.+$|^\\*|^NULA") ~ "SIN ESCOLARIDAD",
+      
+      # Preescolar / Jardín de niños
+      str_detect(str_to_upper(str_trim(escolaridad)), 
+                 "PREESCOLAR|JARDIN|KINDER") ~ "PREESCOLAR",
+      
+      # Primaria (completa e incompleta)
+      str_detect(str_to_upper(str_trim(escolaridad)), 
+                 "PRIMARIA|^1ER|^2DO|^3ER|^4TO|^5TO|^6TO") ~ "PRIMARIA",
+      
+      # Secundaria (incluye errores tipográficos)
+      str_detect(str_to_upper(str_trim(escolaridad)), 
+                 "SECUNDARIA|SECUENDARIA|SECUANDARIA|SCUNDARIA|SECUNDARÍA|TELESECUNDARIA") ~ "SECUNDARIA",
+      
+      # Preparatoria / Bachillerato / Media superior / Vocacional
+      str_detect(str_to_upper(str_trim(escolaridad)), 
+                 "PREPARATORIA|BACHILLERATO|BACHILLER|BACHILERATO|PREPA|MEDIA SUPERIOR|MEDIO SUPERIOR|CCH|CONALEP|CECYT|CETIS|CBTIS|VOCACIONAL") ~ "BACHILLERATO",
+      
+      # Carrera Técnica / Carrera Comercial / Técnico / Secretariado / Comercio
+      str_detect(str_to_upper(str_trim(escolaridad)), 
+                 "TECNIC|CARRERA TECNICA|CARRERA TÉCNICA|CARRERA COMERCIAL|TÉCNICO|TÉCNICA|COMERCIO|SECRETARIADO|SECRETARIA") ~ "CARRERA TÉCNICA",
+      
+      # Licenciatura / Universidad / Superior (incluye errores tipográficos)
+      str_detect(str_to_upper(str_trim(escolaridad)), 
+                 "LICENCIATURA|LINCENCIATURA|LICENCUATURA|LICENCITURA|LICENSIATURA|UNIVERSIDAD|UNIVERSITARI|PROFESIONAL|INGENIERIA|^LIC\\.|CARRERA PROFESIONAL|SUPERIOR|NIVEL SUPERIOR") ~ "LICENCIATURA",
+      
+      # Carrera trunca (incompleta)
+      str_detect(str_to_upper(str_trim(escolaridad)), 
+                 "TRUNCA") ~ "LICENCIATURA TRUNCA",
+      
+      # Posgrado (Maestría, Doctorado, Especialidad)
+      str_detect(str_to_upper(str_trim(escolaridad)), 
+                 "MAESTRIA|MAESTRA|MAESTRÍA|DOCTORADO|POSGRADO|ESPECIALIDAD") ~ "POSGRADO",
+      
+      # Otros
+      TRUE ~ "OTROS"
+    )
+  )
+
+# Verificar resultado
+tabla_integrada |>
+  count(escolaridad_std, sort = TRUE)
+
+# 5.4.2 Coincidencia difusa para 2,021 caos categorizados en "OTROS".
+
+# install.packages("stringdist")
+install.packages("stringdist")
+library(stringdist)
+
+# Definir palabras clave por categoría para matching difuso
+palabras_clave <- list(
+  PRIMARIA = c("primaria", "primer", "segundo", "tercero", "cuarto", "quinto", "sexto"),
+  SECUNDARIA = c("secundaria", "telesecundaria"),
+  BACHILLERATO = c("preparatoria", "bachillerato", "prepa", "bachiller", "vocacional", "media", "superior"),
+  `CARRERA TÉCNICA` = c("tecnica", "tecnico", "comercial", "secretariado", "comercio"),
+  LICENCIATURA = c("licenciatura", "universidad", "universitaria", "profesional", "superior", "ingenieria"),
+  POSGRADO = c("maestria", "doctorado", "posgrado", "especialidad"),
+  PREESCOLAR = c("preescolar", "jardin", "kinder"),
+  `SIN ESCOLARIDAD` = c("sin", "ninguna", "ninguno", "nula")
+)
+
+# Función de clasificación con fuzzy matching
+clasificar_fuzzy_escolaridad <- function(texto) {
+  if (is.na(texto) || texto == "") return("SIN ESCOLARIDAD")
+  
+  texto_limpio <- str_to_upper(str_trim(texto))
+  texto_lower <- str_to_lower(texto_limpio)
+  
+  # Buscar mejor coincidencia en palabras clave
+  mejor_categoria <- NULL
+  mejor_distancia <- Inf
+  
+  for (categoria in names(palabras_clave)) {
+    for (palabra in palabras_clave[[categoria]]) {
+      # Calcular distancia Jaro-Winkler
+      dist <- stringdist(texto_lower, palabra, method = "jw")
+      
+      if (dist < mejor_distancia) {
+        mejor_distancia <- dist
+        mejor_categoria <- categoria
+      }
+    }
+  }
+  
+  # Si la mejor coincidencia es muy mala (> 0.35), marcar para revisión
+  if (mejor_distancia > 0.35) {
+    return("REVISAR MANUAL")
+  }
+  
+  return(mejor_categoria)
+}
+
+# Aplicar fuzzy matching solo a "OTROS"
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    escolaridad_final = if_else(
+      escolaridad_std == "OTROS",
+      map_chr(escolaridad, clasificar_fuzzy_escolaridad),  # map_chr aplica la función a cada elemento
+      escolaridad_std
+    )
+  )
+
+# Ver resultados
+tabla_integrada |>
+  count(escolaridad_final, sort = TRUE)
+
+# Ver cuántos quedaron para revisión manual
+tabla_integrada |>
+  filter(escolaridad_final == "REVISAR MANUAL") |>
+  count(escolaridad, sort = TRUE) |>
+  head(20)
+
+# Contar registros antes de eliminar
+antes_supr_rev_man <- nrow(tabla_integrada)
+
+# Eliminar registros con "REVISAR MANUAL"
+tabla_integrada <- tabla_integrada |>
+  filter(escolaridad_final != "REVISAR MANUAL")
+
+# Contar registros después de eliminar
+despues_supr_rev_man <- nrow(tabla_integrada)
+
+# Ver el resultado
+cat("Registros antes:", antes_supr_rev_man, "\n")
+cat("Registros después:", despues_supr_rev_man, "\n")
+cat("Registros eliminados:", antes_supr_rev_man - despues_supr_rev_man, "\n")
+
+# Verificar que ya no hay "REVISAR MANUAL"
+tabla_integrada |>
+  count(escolaridad_final, sort = TRUE)
+
+
+
+
 
 
 # 8. ANÁLISIS EXPLORATORIO ----
