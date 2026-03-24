@@ -211,8 +211,211 @@ cat("=== REGISTROS RESTANTES ===\n")
 cat("antes_filtro_cpod =", antes_filtro_cpod, "\n")
 cat("despues_filtro_cpod =", despues_filtro_cpod, "\n\n")
 
+# 5.2.2 Crear columna cpo_individual después de la columna "luz"
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    cpo_individual = inicial_cariados + inicial_perdidos + inicial_obturados,
+    .after = luz
+  )
 
-# 5.3 Limpieza, estandarización de valores de derechohabiencia (norrmalización y recategorización)
+# Verificar la nueva columna
+tabla_integrada |>
+  select(luz, cpo_individual, inicial_cariados, inicial_perdidos, inicial_obturados) |>
+  head(10)
+
+# Ver estadísticas descriptivas
+summary(tabla_integrada$cpo_individual)
+
+
+
+# 5.2.3 Categorización del estado de salud bucal en función del CPOD ajustado por grupo de edad en relación con clasificación de la OMS y propia ajustada en percentiles.
+
+# Crear ambas clasificaciones usando los grupos de edad existentes
+tabla_integrada <- tabla_integrada |>
+  # CLASIFICACIÓN OMS (puntos de corte fijos por grupo)
+  mutate(
+    estado_salud_oms = case_when(
+      # Grupos jóvenes (18-34 años): criterios más estrictos
+      grupo_edad %in% c("18-24", "25-29", "30-34") & cpo_individual <= 3 ~ "MUY BAJO",
+      grupo_edad %in% c("18-24", "25-29", "30-34") & cpo_individual <= 7 ~ "BAJO",
+      grupo_edad %in% c("18-24", "25-29", "30-34") & cpo_individual <= 12 ~ "MODERADO",
+      grupo_edad %in% c("18-24", "25-29", "30-34") & cpo_individual <= 18 ~ "ALTO",
+      grupo_edad %in% c("18-24", "25-29", "30-34") & cpo_individual > 18 ~ "MUY ALTO",
+      
+      # Grupos intermedios (35-49 años)
+      grupo_edad %in% c("35-39", "40-44", "45-49") & cpo_individual <= 5 ~ "MUY BAJO",
+      grupo_edad %in% c("35-39", "40-44", "45-49") & cpo_individual <= 10 ~ "BAJO",
+      grupo_edad %in% c("35-39", "40-44", "45-49") & cpo_individual <= 16 ~ "MODERADO",
+      grupo_edad %in% c("35-39", "40-44", "45-49") & cpo_individual <= 22 ~ "ALTO",
+      grupo_edad %in% c("35-39", "40-44", "45-49") & cpo_individual > 22 ~ "MUY ALTO",
+      
+      # Grupos maduros (50-64 años)
+      grupo_edad %in% c("50-54", "55-59", "60-64") & cpo_individual <= 8 ~ "MUY BAJO",
+      grupo_edad %in% c("50-54", "55-59", "60-64") & cpo_individual <= 14 ~ "BAJO",
+      grupo_edad %in% c("50-54", "55-59", "60-64") & cpo_individual <= 20 ~ "MODERADO",
+      grupo_edad %in% c("50-54", "55-59", "60-64") & cpo_individual <= 26 ~ "ALTO",
+      grupo_edad %in% c("50-54", "55-59", "60-64") & cpo_individual > 26 ~ "MUY ALTO",
+      
+      # Grupos mayores (65+ años)
+      grupo_edad %in% c("65-69", "70-74", "75-79", "80-84", "85-89", "90-94", "95-100") & cpo_individual <= 10 ~ "MUY BAJO",
+      grupo_edad %in% c("65-69", "70-74", "75-79", "80-84", "85-89", "90-94", "95-100") & cpo_individual <= 16 ~ "BAJO",
+      grupo_edad %in% c("65-69", "70-74", "75-79", "80-84", "85-89", "90-94", "95-100") & cpo_individual <= 22 ~ "MODERADO",
+      grupo_edad %in% c("65-69", "70-74", "75-79", "80-84", "85-89", "90-94", "95-100") & cpo_individual <= 28 ~ "ALTO",
+      grupo_edad %in% c("65-69", "70-74", "75-79", "80-84", "85-89", "90-94", "95-100") & cpo_individual > 28 ~ "MUY ALTO",
+      
+      TRUE ~ NA_character_
+    ),
+    .after = cpo_individual
+  ) |>
+  # CLASIFICACIÓN POR PERCENTILES (ajustada a cada grupo de edad)
+  group_by(grupo_edad) |>
+  mutate(
+    percentil_cpod = percent_rank(cpo_individual),
+    estado_salud_percentiles = case_when(
+      percentil_cpod <= 0.20 ~ "MUY BAJO",
+      percentil_cpod <= 0.40 ~ "BAJO",
+      percentil_cpod <= 0.60 ~ "MODERADO",
+      percentil_cpod <= 0.80 ~ "ALTO",
+      percentil_cpod > 0.80 ~ "MUY ALTO",
+      TRUE ~ NA_character_
+    ),
+    .after = estado_salud_oms
+  ) |>
+  ungroup()
+
+# Verificar resultados
+cat("=== CLASIFICACIÓN OMS POR GRUPO DE EDAD ===\n")
+tabla_integrada |>
+  count(grupo_edad, estado_salud_oms)
+
+cat("\n=== CLASIFICACIÓN POR PERCENTILES ===\n")
+tabla_integrada |>
+  count(grupo_edad, estado_salud_percentiles)
+
+cat("\n=== COMPARACIÓN GENERAL ===\n")
+tabla_integrada |>
+  count(estado_salud_oms, estado_salud_percentiles) |>
+  pivot_wider(names_from = estado_salud_percentiles, values_from = n, values_fill = 0)
+
+#--------------------------------------------------------------------------------------------------------
+
+# GRÁFICA DE PERCENTILES EXPLICATIVA
+
+library(ggplot2)
+
+# 1. GRÁFICA DE CAJAS (BOXPLOT) por grupo de edad
+# Muestra la distribución del CPO-D en cada grupo etario
+ggplot(tabla_integrada, aes(x = grupo_edad, y = cpo_individual, fill = grupo_edad)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_hline(yintercept = c(quantile(tabla_integrada$cpo_individual, c(0.20, 0.40, 0.60, 0.80))), 
+             linetype = "dashed", color = "red", alpha = 0.5) +
+  labs(
+    title = "Distribución del CPO-D por Grupo de Edad",
+    subtitle = "Las líneas rojas muestran los percentiles 20, 40, 60 y 80 globales",
+    x = "Grupo de Edad",
+    y = "CPO-D Individual"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+# 2. GRÁFICA DE PERCENTILES con líneas de corte
+# Muestra cómo se clasifican los datos según percentiles
+tabla_integrada |>
+  group_by(grupo_edad) |>
+  summarise(
+    n = n(),
+    p20 = quantile(cpo_individual, 0.20),
+    p40 = quantile(cpo_individual, 0.40),
+    p60 = quantile(cpo_individual, 0.60),
+    p80 = quantile(cpo_individual, 0.80)
+  ) |>
+  pivot_longer(cols = c(p20, p40, p60, p80), 
+               names_to = "percentil", 
+               values_to = "cpod_valor") |>
+  ggplot(aes(x = grupo_edad, y = cpod_valor, color = percentil, group = percentil)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  labs(
+    title = "Puntos de Corte del CPO-D por Grupo de Edad (Percentiles)",
+    subtitle = "Cada línea representa un percentil diferente",
+    x = "Grupo de Edad",
+    y = "Valor CPO-D",
+    color = "Percentil"
+  ) +
+  scale_color_manual(
+    values = c("p20" = "#2ecc71", "p40" = "#3498db", "p60" = "#f39c12", "p80" = "#e74c3c"),
+    labels = c("20% (MUY BAJO/BAJO)", "40% (BAJO/MODERADO)", 
+               "60% (MODERADO/ALTO)", "80% (ALTO/MUY ALTO)")
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# 3. TABLA RESUMEN con puntos de corte
+cat("\n=== PUNTOS DE CORTE POR GRUPO DE EDAD ===\n")
+tabla_integrada |>
+  group_by(grupo_edad) |>
+  summarise(
+    n = n(),
+    `Min` = min(cpo_individual),
+    `P20 (MUY BAJO)` = quantile(cpo_individual, 0.20),
+    `P40 (BAJO)` = quantile(cpo_individual, 0.40),
+    `P60 (MODERADO)` = quantile(cpo_individual, 0.60),
+    `P80 (ALTO)` = quantile(cpo_individual, 0.80),
+    `Max` = max(cpo_individual),
+    `Media` = round(mean(cpo_individual), 1)
+  ) |>
+  print(n = 20)
+
+# 4. GRÁFICA DE DENSIDAD con áreas coloreadas por clasificación
+# Ejemplo para un grupo específico (25-29 años)
+tabla_integrada |>
+  filter(grupo_edad == "25-29") |>
+  ggplot(aes(x = cpo_individual, fill = estado_salud_percentiles)) +
+  geom_density(alpha = 0.6) +
+  geom_vline(xintercept = quantile(
+    tabla_integrada$cpo_individual[tabla_integrada$grupo_edad == "25-29"], 
+    c(0.20, 0.40, 0.60, 0.80)
+  ), linetype = "dashed", color = "black") +
+  labs(
+    title = "Distribución del CPO-D para el Grupo 25-29 años",
+    subtitle = "Las líneas verticales marcan los percentiles 20, 40, 60 y 80",
+    x = "CPO-D Individual",
+    y = "Densidad",
+    fill = "Clasificación"
+  ) +
+  scale_fill_manual(
+    values = c("MUY BAJO" = "#27ae60", "BAJO" = "#3498db", 
+               "MODERADO" = "#f39c12", "ALTO" = "#e67e22", "MUY ALTO" = "#e74c3c")
+  ) +
+  theme_minimal()
+
+# 5. HEATMAP: Comparación de clasificaciones
+tabla_integrada |>
+  count(estado_salud_oms, estado_salud_percentiles) |>
+  ggplot(aes(x = estado_salud_oms, y = estado_salud_percentiles, fill = n)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = n), color = "white", fontface = "bold") +
+  scale_fill_gradient(low = "#3498db", high = "#e74c3c") +
+  labs(
+    title = "Comparación: Clasificación OMS vs Percentiles",
+    subtitle = "Número de personas en cada combinación de clasificaciones",
+    x = "Clasificación OMS",
+    y = "Clasificación por Percentiles",
+    fill = "Cantidad"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+
+
+
+# 5.3 Limpieza, estandarización de valores de derechohabiencia (normalización y recategorización)
 
 # Función para estandarizar instituciones de derechohabiencia
 tabla_integrada <- tabla_integrada |>
