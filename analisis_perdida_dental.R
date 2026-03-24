@@ -321,18 +321,17 @@ ggplot(tabla_integrada, aes(x = grupo_edad, y = cpo_individual, fill = grupo_eda
     legend.position = "none"
   )
 
-# 2. GRÁFICA DE PERCENTILES con líneas de corte
-# Muestra cómo se clasifican los datos según percentiles
+# 2. GRÁFICA DE PERCENTILES con líneas de corte (CORREGIDA)
 tabla_integrada |>
   group_by(grupo_edad) |>
   summarise(
     n = n(),
-    p20 = quantile(cpo_individual, 0.20),
-    p40 = quantile(cpo_individual, 0.40),
-    p60 = quantile(cpo_individual, 0.60),
-    p80 = quantile(cpo_individual, 0.80)
+    P20 = quantile(cpo_individual, 0.20),
+    P40 = quantile(cpo_individual, 0.40),
+    P60 = quantile(cpo_individual, 0.60),
+    P80 = quantile(cpo_individual, 0.80)
   ) |>
-  pivot_longer(cols = c(p20, p40, p60, p80), 
+  pivot_longer(cols = c(P20, P40, P60, P80), 
                names_to = "percentil", 
                values_to = "cpod_valor") |>
   ggplot(aes(x = grupo_edad, y = cpod_valor, color = percentil, group = percentil)) +
@@ -346,12 +345,15 @@ tabla_integrada |>
     color = "Percentil"
   ) +
   scale_color_manual(
-    values = c("p20" = "#2ecc71", "p40" = "#3498db", "p60" = "#f39c12", "p80" = "#e74c3c"),
-    labels = c("20% (MUY BAJO/BAJO)", "40% (BAJO/MODERADO)", 
-               "60% (MODERADO/ALTO)", "80% (ALTO/MUY ALTO)")
+    values = c("P20" = "#27ae60", "P40" = "#3498db", "P60" = "#f39c12", "P80" = "#e74c3c"),
+    labels = c("P20 (MUY BAJO/BAJO)", "P40 (BAJO/MODERADO)", 
+               "P60 (MODERADO/ALTO)", "P80 (ALTO/MUY ALTO)")
   ) +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "right"
+  )
 
 # 3. TABLA RESUMEN con puntos de corte
 cat("\n=== PUNTOS DE CORTE POR GRUPO DE EDAD ===\n")
