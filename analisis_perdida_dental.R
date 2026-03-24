@@ -187,7 +187,9 @@ print(table(tabla_integrada$grupo_edad, useNA = "ifany"))
 cat("\n")
 
 
-# 5.1.3 Eliminar registros que no contienen información sobre el índice CPO-D inicial (todas las columnas del índice = 0)
+# 5.2 Càlculo del índice CPO-D inicial
+
+# 5.2.1 Eliminar registros que no contienen información sobre el índice CPO-D inicial (todas las columnas del índice = 0)
 # Filtrar registros con CPO-D inicial válido
 # Eliminar registros donde TODAS las columnas del índice CPO-D inicial sean 0
 antes_filtro_cpod <- nrow(tabla_integrada)
@@ -208,6 +210,61 @@ cat("Porcentaje eliminado:",
 cat("=== REGISTROS RESTANTES ===\n")
 cat("antes_filtro_cpod =", antes_filtro_cpod, "\n")
 cat("despues_filtro_cpod =", despues_filtro_cpod, "\n\n")
+
+
+# 5.3 Estandarización de valores de derechohabiencia
+
+# Función para estandarizar instituciones de derechohabiencia
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    institucion_derechohabiencia_std = case_when(
+      # IMSS (incluyendo variantes)
+      str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
+                 "^IMSS|^INSTITUTO MEXICANO DEL SEGURO") ~ "IMSS",
+      
+      # ISSSTE
+      str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
+                 "^ISS+TE|^INSTITUTO DE SEGURIDAD Y SERVICIOS SOCIALES") ~ "ISSSTE",
+      
+      # ISSEMYM
+      str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
+                 "^ISSEMYM|^ISEMYM") ~ "ISSEMYM",
+      
+      # ISSFAM
+      str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
+                 "^ISSFAM") ~ "ISSFAM",
+      
+      # PEMEX
+      str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
+                 "^PEMEX|^PETROLEOS") ~ "PEMEX",
+      
+      # Seguro Popular
+      str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
+                 "SEGURO POPULAR") ~ "SEGURO POPULAR",
+      
+      # INSABI
+      str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
+                 "INSABI") ~ "INSABI",
+      
+      # Sin derechohabiencia (incluye NA, SSA y múltiples variantes)
+      is.na(institucion_derechohabiencia) | 
+      str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
+                 "^NINGUN|^NO TIENE|^NO$|^N$|^NA$|^NO TENGO|^SIN |^NINGUNA|^SSA|^SECRETARIA DE SALUD") ~ "SIN DERECHOHABIENCIA",
+      
+      # Otros
+      str_detect(str_to_upper(str_trim(institucion_derechohabiencia)), 
+                 "^OTRO") ~ "OTROS",
+      
+      # Cualquier otro caso
+      TRUE ~ "OTROS"
+    )
+  )
+
+# Verificar resultado
+tabla_integrada |>
+  count(institucion_derechohabiencia_std, sort = TRUE)
+
+
 
 
 
