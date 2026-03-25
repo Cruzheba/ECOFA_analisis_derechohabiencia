@@ -565,7 +565,6 @@ tabla_integrada |>
 # 5.4.2 Coincidencia difusa para x casos categorizados en "OTROS".
 
 # install.packages("stringdist")
-install.packages("stringdist")
 library(stringdist)
 
 # Definir palabras clave por categoría para matching difuso
@@ -658,6 +657,126 @@ tabla_integrada |>
 # 8. ANÁLISIS EXPLORATORIO ----
 # TODO: Análisis descriptivo por grupos
 # TODO: Visualizaciones exploratorias
+
+# install.packages("gtsummary")
+library(gtsummary)
+
+# Convertir variables categóricas a factores con orden lógico
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    sexo = factor(sexo),
+    grupo_edad = factor(grupo_edad, levels = c(
+      "18-24", "25-29", "30-34", "35-39", "40-44", "45-49",
+      "50-54", "55-59", "60-64", "65-69", "70-74", "75-79",
+      "80-84", "85-89", "90-94", "95-100"
+    )),
+    escolaridad_final = factor(escolaridad_final, levels = c(
+      "SIN ESCOLARIDAD", "PREESCOLAR", "PRIMARIA", "SECUNDARIA",
+      "BACHILLERATO", "CARRERA TÉCNICA", "LICENCIATURA TRUNCA",
+      "LICENCIATURA", "POSGRADO"
+    )),
+    institucion_derechohabiencia_std = factor(institucion_derechohabiencia_std),
+    estado_salud_percentiles = factor(estado_salud_percentiles, levels = c(
+      "MUY BAJO", "BAJO", "MODERADO", "ALTO", "MUY ALTO"
+    ))
+  )
+
+# ============================================================
+# TABLA 1: Características sociodemográficas generales
+# ============================================================
+tabla_1 <- tabla_integrada |>
+  select(sexo, grupo_edad, escolaridad_final, institucion_derechohabiencia_std) |>
+  tbl_summary(
+    label = list(
+      sexo                             ~ "Sexo",
+      grupo_edad                       ~ "Grupo de edad",
+      escolaridad_final                ~ "Escolaridad",
+      institucion_derechohabiencia_std ~ "Derechohabiencia"
+    ),
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    digits = all_categorical() ~ c(0, 1),
+    missing = "no"
+  ) |>
+  bold_labels() |>
+  modify_caption("**Tabla 1. Características sociodemográficas de la muestra (n = 69,840)**") |>
+  modify_footnote(everything() ~ "n (%)")
+
+tabla_1
+
+# ============================================================
+# TABLA 2: Índice CPO-D y estado de salud bucal por sexo
+# ============================================================
+tabla_2 <- tabla_integrada |>
+  select(sexo, cpo_individual, estado_salud_percentiles) |>
+  tbl_summary(
+    by = sexo,
+    label = list(
+      cpo_individual           ~ "Índice CPO-D",
+      estado_salud_percentiles ~ "Estado de salud bucal"
+    ),
+    statistic = list(
+      all_continuous()  ~ "{mean} ± {sd} (rango: {min}-{max})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      all_continuous()  ~ 1,
+      all_categorical() ~ c(0, 1)
+    ),
+    missing = "no"
+  ) |>
+  add_overall(last = FALSE) |>
+  bold_labels() |>
+  modify_caption("**Tabla 2. Índice CPO-D y estado de salud bucal según sexo**") |>
+  modify_footnote(everything() ~ "n (%); Media ± DE. CPO-D: Cariados, Perdidos, Obturados - Dientes.")
+
+tabla_2
+
+# ============================================================
+# TABLA 3: Estado de salud bucal según derechohabiencia
+# (variable de exposición principal del estudio)
+# ============================================================
+tabla_3 <- tabla_integrada |>
+  select(institucion_derechohabiencia_std, cpo_individual, 
+         estado_salud_percentiles, escolaridad_final) |>
+  tbl_summary(
+    by = institucion_derechohabiencia_std,
+    label = list(
+      cpo_individual           ~ "Índice CPO-D",
+      estado_salud_percentiles ~ "Estado de salud bucal",
+      escolaridad_final        ~ "Escolaridad"
+    ),
+    statistic = list(
+      all_continuous()  ~ "{mean} ± {sd}",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      all_continuous()  ~ 1,
+      all_categorical() ~ c(0, 1)
+    ),
+    missing = "no"
+  ) |>
+  add_overall(last = FALSE) |>
+  bold_labels() |>
+  modify_caption("**Tabla 3. Estado de salud bucal según derechohabiencia**") |>
+  modify_footnote(everything() ~ "n (%); Media ± DE. CPO-D: Cariados, Perdidos, Obturados - Dientes.")
+
+tabla_3
+
+# install.packages("flextable")
+library(flextable)
+
+# Exportar cada tabla por separado
+tabla_1 |>
+  as_flex_table() |>
+  save_as_docx(path = "tabla_1_sociodemografica.docx")
+
+tabla_2 |>
+  as_flex_table() |>
+  save_as_docx(path = "tabla_2_cpod_sexo.docx")
+
+tabla_3 |>
+  as_flex_table() |>
+  save_as_docx(path = "tabla_3_derechohabiencia.docx")
 
 # 9. MODELADO ESTADÍSTICO ----
 # TODO: Análisis de asociación entre derechohabiencia y pérdida dental
