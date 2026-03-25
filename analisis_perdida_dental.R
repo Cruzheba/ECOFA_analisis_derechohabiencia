@@ -401,6 +401,20 @@ tabla_integrada |>
   ) |>
   print(n = 20)
 
+# Tabla de rangos exactos por grupo de edad y categoría
+tabla_integrada |>
+  group_by(grupo_edad) |>
+  summarise(
+    n = n(),
+    `MUY BAJO (0-P20)`    = paste0("0 - ", quantile(cpo_individual, 0.20)),
+    `BAJO (P20-P40)`       = paste0(quantile(cpo_individual, 0.20) + 1, " - ", quantile(cpo_individual, 0.40)),
+    `MODERADO (P40-P60)`   = paste0(quantile(cpo_individual, 0.40) + 1, " - ", quantile(cpo_individual, 0.60)),
+    `ALTO (P60-P80)`       = paste0(quantile(cpo_individual, 0.60) + 1, " - ", quantile(cpo_individual, 0.80)),
+    `MUY ALTO (>P80)`      = paste0("> ", quantile(cpo_individual, 0.80))
+  ) |>
+  print(n = 20, width = Inf)
+
+
 # 5.2.5.4 GRÁFICA DE DENSIDAD con áreas coloreadas por clasificación
 # Ejemplo para un grupo específico (25-29 años)
 tabla_integrada |>
