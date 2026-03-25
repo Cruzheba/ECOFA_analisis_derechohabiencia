@@ -11,6 +11,8 @@
 # 1. CARGAR LIBRERÍAS ----
 library(tidyverse)
 
+
+
 # 2. CARGAR DATOS Y CREAR COLUMNA IDENTIFICADORA ----
 
 # 2.1 Interrogación ficha (variables sociodemográficas y derechohabiencia)
@@ -53,6 +55,9 @@ cat("\n=======================================================\n")
 cat("✅ TODAS LAS 5 TABLAS CARGADAS EXITOSAMENTE\n")
 cat("✅ Todas las tablas tienen la columna 'clinica_no_expediente'\n")
 
+
+
+
 # 3. INTEGRACIÓN DE TABLAS ----
 
 # 3.1 Integrar las 5 tablas usando tratamiento_gen como base
@@ -93,6 +98,8 @@ cantidad_registros_iniciales <- nrow(tabla_integrada)
 
 cat("✅ Variable creada: cantidad_registros_iniciales =", cantidad_registros_iniciales, "\n\n")
 
+
+
 # 4. FILTRAR REGISTROS AUTORIZADOS
 
 # 4.1 Filtrar registros aceptados
@@ -109,6 +116,8 @@ cantidad_registros_autorizados <- nrow(tabla_integrada)
 cat("✅ Variable creada: cantidad_registros_autorizados =", cantidad_registros_autorizados, "\n")
 cat("Registros eliminados:", cantidad_registros_iniciales - cantidad_registros_autorizados, 
     "(", round((cantidad_registros_iniciales - cantidad_registros_autorizados) / cantidad_registros_iniciales * 100, 2), "%)\n\n")
+
+
 
 # 5. LIMPIEZA, TRANSFORMACIÓN Y CREACIÓN DE VARIABLES ----
 
@@ -211,6 +220,7 @@ cat("=== REGISTROS RESTANTES ===\n")
 cat("antes_filtro_cpod =", antes_filtro_cpod, "\n")
 cat("despues_filtro_cpod =", despues_filtro_cpod, "\n\n")
 
+
 # 5.2.2 Crear columna cpo_individual después de la columna "luz"
 tabla_integrada <- tabla_integrada |>
   mutate(
@@ -223,12 +233,33 @@ tabla_integrada |>
   select(luz, cpo_individual, inicial_cariados, inicial_perdidos, inicial_obturados) |>
   head(10)
 
+
 # Ver estadísticas descriptivas
 summary(tabla_integrada$cpo_individual)
 
+# 5.2.3 Eliminar registros con CPO-D > 32 (datos inconsistentes)
+
+# Contar antes de filtrar
+antes_filtro_cpod_32 <- nrow(tabla_integrada)
+
+# Eliminar registros con CPO-D > 32 (biológicamente imposible)
+tabla_integrada <- tabla_integrada |>
+  filter(cpo_individual <= 32)
+
+# Contar después de filtrar
+despues_filtro_cpod_32 <- nrow(tabla_integrada)
+
+# Reportar eliminación
+cat("\n=== FILTRO: CPO-D > 32 ===\n")
+cat("Registros antes:", antes_filtro_cpod_32, "\n")
+cat("Registros después:", despues_filtro_cpod_32, "\n")
+cat("Registros eliminados:", antes_filtro_cpod_32 - despues_filtro_cpod_32, "\n")
+cat("Porcentaje eliminado:", 
+    round((antes_filtro_cpod_32 - despues_filtro_cpod_32) / antes_filtro_cpod_32 * 100, 2), 
+    "%\n\n")
 
 
-# 5.2.3 Categorización del estado de salud bucal en función del CPOD ajustado por grupo de edad en relación con clasificación de la OMS y propia ajustada en percentiles.
+# 5.2.4 Categorización del estado de salud bucal en función del CPOD ajustado por grupo de edad en relación con clasificación de la OMS y propia ajustada en percentiles.
 
 # Crear ambas clasificaciones usando los grupos de edad existentes
 tabla_integrada <- tabla_integrada |>
@@ -297,13 +328,12 @@ tabla_integrada |>
   count(estado_salud_oms, estado_salud_percentiles) |>
   pivot_wider(names_from = estado_salud_percentiles, values_from = n, values_fill = 0)
 
-#--------------------------------------------------------------------------------------------------------
 
-# GRÁFICA DE PERCENTILES EXPLICATIVA
+# 5.2.5 GRÁFICA DE PERCENTILES EXPLICATIVA
 
 library(ggplot2)
 
-# 1. GRÁFICA DE CAJAS (BOXPLOT) por grupo de edad
+# 5.2.5.1 GRÁFICA DE CAJAS (BOXPLOT) por grupo de edad
 # Muestra la distribución del CPO-D en cada grupo etario
 ggplot(tabla_integrada, aes(x = grupo_edad, y = cpo_individual, fill = grupo_edad)) +
   geom_boxplot(alpha = 0.7) +
@@ -321,7 +351,7 @@ ggplot(tabla_integrada, aes(x = grupo_edad, y = cpo_individual, fill = grupo_eda
     legend.position = "none"
   )
 
-# 2. GRÁFICA DE PERCENTILES con líneas de corte (CORREGIDA)
+# 5.2.5.2 GRÁFICA DE PERCENTILES con líneas de corte
 tabla_integrada |>
   group_by(grupo_edad) |>
   summarise(
@@ -355,7 +385,7 @@ tabla_integrada |>
     legend.position = "right"
   )
 
-# 3. TABLA RESUMEN con puntos de corte
+# 5.2.5.3 TABLA RESUMEN con puntos de corte
 cat("\n=== PUNTOS DE CORTE POR GRUPO DE EDAD ===\n")
 tabla_integrada |>
   group_by(grupo_edad) |>
@@ -371,7 +401,7 @@ tabla_integrada |>
   ) |>
   print(n = 20)
 
-# 4. GRÁFICA DE DENSIDAD con áreas coloreadas por clasificación
+# 5.2.5.4 GRÁFICA DE DENSIDAD con áreas coloreadas por clasificación
 # Ejemplo para un grupo específico (25-29 años)
 tabla_integrada |>
   filter(grupo_edad == "25-29") |>
@@ -394,7 +424,7 @@ tabla_integrada |>
   ) +
   theme_minimal()
 
-# 5. HEATMAP: Comparación de clasificaciones
+# 5.2.5.5 HEATMAP: Comparación de clasificaciones
 tabla_integrada |>
   count(estado_salud_oms, estado_salud_percentiles) |>
   ggplot(aes(x = estado_salud_oms, y = estado_salud_percentiles, fill = n)) +
@@ -410,11 +440,6 @@ tabla_integrada |>
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-
-
-
 
 
 # 5.3 Limpieza, estandarización de valores de derechohabiencia (normalización y recategorización)
@@ -470,8 +495,7 @@ tabla_integrada |>
   count(institucion_derechohabiencia_std, sort = TRUE)
 
 
-
-# 5.4 Limpieza, estandarización de valores de escolaridad (norrmalización y recategorización)
+# 5.4 Limpieza, estandarización de valores de escolaridad (normalización y recategorización)
 
 # 5.4.1 Estandarizar escolaridad (versión mejorada)
 
@@ -524,7 +548,7 @@ tabla_integrada <- tabla_integrada |>
 tabla_integrada |>
   count(escolaridad_std, sort = TRUE)
 
-# 5.4.2 Coincidencia difusa para 2,021 caos categorizados en "OTROS".
+# 5.4.2 Coincidencia difusa para x casos categorizados en "OTROS".
 
 # install.packages("stringdist")
 install.packages("stringdist")
