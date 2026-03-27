@@ -1,0 +1,8 @@
+# Ignorar todo
+*
+
+# Excepto el archivo principal de análisis
+!analisis_perdida_dental.R
+
+# Excepto el propio .gitignore
+!.gitignore
