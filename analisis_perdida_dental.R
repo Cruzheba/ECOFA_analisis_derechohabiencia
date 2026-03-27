@@ -4,11 +4,11 @@
 # Proyecto: Evaluación del estado de salud bucal en pacientes que acuden a los servicios odontológicos universitarios: Análisis de la asociación con la pobreza y la derechohabiencia a servicios de salud.
 # Repositorio: https://github.com/Cruzheba/ECOFA_analisis_derechohabiencia
 # Autor: [CRUZ HERNANDEZ BARREDA]
-# Fecha: 2026-01-09
+# Fecha: 27 de marzo de 2026
 # Descripción: Análisis de la asociación entre derechohabiencia y el estado de salud bucal de acuerdo con el indice cpo, ajustando por variables socioeconómicas.
 # ==============================================================================
 
-# 1. CARGAR LIBRERÍAS ----
+# 1. CARGAR LIBRERÍAS --------
 library(tidyverse)
 
 
