@@ -196,6 +196,23 @@ print(table(tabla_integrada$grupo_edad, useNA = "ifany"))
 cat("\n")
 
 
+#----------------------------------------------------------------------------------------------------------------------------------------------------
+#Plot de grupos de edad (se deberá generar al final porque de estos registros todavía de eliminann algunos por filtros posteriores)
+tabla_integrada |>
+  count(grupo_edad) |>
+  ggplot(aes(x = grupo_edad, y = n)) +
+  geom_col(fill = "#3498db", alpha = 0.85) +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  labs(
+    title = "Distribución de registros por grupo de edad",
+    x = "Grupo de edad",
+    y = "Número de registros"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#----------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 # 5.2 Càlculo del índice CPO-D inicial
 
 # 5.2.1 Eliminar registros que no contienen información sobre el índice CPO-D inicial (todas las columnas del índice = 0)
