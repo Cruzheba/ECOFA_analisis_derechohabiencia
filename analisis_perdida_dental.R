@@ -196,6 +196,23 @@ print(table(tabla_integrada$grupo_edad, useNA = "ifany"))
 cat("\n")
 
 
+#----------------------------------------------------------------------------------------------------------------------------------------------------
+#Plot de grupos de edad (se deberá generar al final porque de estos registros todavía de eliminann algunos por filtros posteriores)
+tabla_integrada |>
+  count(grupo_edad) |>
+  ggplot(aes(x = grupo_edad, y = n)) +
+  geom_col(fill = "#3498db", alpha = 0.85) +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  labs(
+    title = "Distribución de registros por grupo de edad",
+    x = "Grupo de edad",
+    y = "Número de registros"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#----------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 # 5.2 Càlculo del índice CPO-D inicial
 
 # 5.2.1 Eliminar registros que no contienen información sobre el índice CPO-D inicial (todas las columnas del índice = 0)
@@ -328,7 +345,133 @@ tabla_integrada |>
   count(estado_salud_oms, estado_salud_percentiles) |>
   pivot_wider(names_from = estado_salud_percentiles, values_from = n, values_fill = 0)
 
+
+# 5.2.5 GRÁFICA DE PERCENTILES EXPLICATIVA
+
 library(ggplot2)
+
+# 5.2.5.1 GRÁFICA DE CAJAS (BOXPLOT) por grupo de edad
+# Muestra la distribución del CPO-D en cada grupo etario
+ggplot(tabla_integrada, aes(x = grupo_edad, y = cpo_individual, fill = grupo_edad)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_hline(yintercept = c(quantile(tabla_integrada$cpo_individual, c(0.20, 0.40, 0.60, 0.80))), 
+             linetype = "dashed", color = "red", alpha = 0.5) +
+  labs(
+    title = "Distribución del CPO-D por Grupo de Edad",
+    subtitle = "Las líneas rojas muestran los percentiles 20, 40, 60 y 80 globales",
+    x = "Grupo de Edad",
+    y = "CPO-D Individual"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+# 5.2.5.2 GRÁFICA DE PERCENTILES con líneas de corte
+tabla_integrada |>
+  group_by(grupo_edad) |>
+  summarise(
+    n = n(),
+    P20 = quantile(cpo_individual, 0.20),
+    P40 = quantile(cpo_individual, 0.40),
+    P60 = quantile(cpo_individual, 0.60),
+    P80 = quantile(cpo_individual, 0.80)
+  ) |>
+  pivot_longer(cols = c(P20, P40, P60, P80), 
+               names_to = "percentil", 
+               values_to = "cpod_valor") |>
+  ggplot(aes(x = grupo_edad, y = cpod_valor, color = percentil, group = percentil)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  labs(
+    title = "Puntos de Corte del CPO-D por Grupo de Edad (Percentiles)",
+    subtitle = "Cada línea representa un percentil diferente",
+    x = "Grupo de Edad",
+    y = "Valor CPO-D",
+    color = "Percentil"
+  ) +
+  scale_color_manual(
+    values = c("P20" = "#27ae60", "P40" = "#3498db", "P60" = "#f39c12", "P80" = "#e74c3c"),
+    labels = c("P20 (MUY BAJO/BAJO)", "P40 (BAJO/MODERADO)", 
+               "P60 (MODERADO/ALTO)", "P80 (ALTO/MUY ALTO)")
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "right"
+  )
+
+# 5.2.5.3 TABLA RESUMEN con puntos de corte
+cat("\n=== PUNTOS DE CORTE POR GRUPO DE EDAD ===\n")
+tabla_integrada |>
+  group_by(grupo_edad) |>
+  summarise(
+    n = n(),
+    `Min` = min(cpo_individual),
+    `P20 (MUY BAJO)` = quantile(cpo_individual, 0.20),
+    `P40 (BAJO)` = quantile(cpo_individual, 0.40),
+    `P60 (MODERADO)` = quantile(cpo_individual, 0.60),
+    `P80 (ALTO)` = quantile(cpo_individual, 0.80),
+    `Max` = max(cpo_individual),
+    `Media` = round(mean(cpo_individual), 1)
+  ) |>
+  print(n = 20)
+
+# Tabla de rangos exactos por grupo de edad y categoría
+tabla_integrada |>
+  group_by(grupo_edad) |>
+  summarise(
+    n = n(),
+    `MUY BAJO (0-P20)`    = paste0("0 - ", quantile(cpo_individual, 0.20)),
+    `BAJO (P20-P40)`       = paste0(quantile(cpo_individual, 0.20) + 1, " - ", quantile(cpo_individual, 0.40)),
+    `MODERADO (P40-P60)`   = paste0(quantile(cpo_individual, 0.40) + 1, " - ", quantile(cpo_individual, 0.60)),
+    `ALTO (P60-P80)`       = paste0(quantile(cpo_individual, 0.60) + 1, " - ", quantile(cpo_individual, 0.80)),
+    `MUY ALTO (>P80)`      = paste0("> ", quantile(cpo_individual, 0.80))
+  ) |>
+  print(n = 20, width = Inf)
+
+
+# 5.2.5.4 GRÁFICA DE DENSIDAD con áreas coloreadas por clasificación
+# Ejemplo para un grupo específico (25-29 años)
+tabla_integrada |>
+  filter(grupo_edad == "25-29") |>
+  ggplot(aes(x = cpo_individual, fill = estado_salud_percentiles)) +
+  geom_density(alpha = 0.6) +
+  geom_vline(xintercept = quantile(
+    tabla_integrada$cpo_individual[tabla_integrada$grupo_edad == "25-29"], 
+    c(0.20, 0.40, 0.60, 0.80)
+  ), linetype = "dashed", color = "black") +
+  labs(
+    title = "Distribución del CPO-D para el Grupo 25-29 años",
+    subtitle = "Las líneas verticales marcan los percentiles 20, 40, 60 y 80",
+    x = "CPO-D Individual",
+    y = "Densidad",
+    fill = "Clasificación"
+  ) +
+  scale_fill_manual(
+    values = c("MUY BAJO" = "#27ae60", "BAJO" = "#3498db", 
+               "MODERADO" = "#f39c12", "ALTO" = "#e67e22", "MUY ALTO" = "#e74c3c")
+  ) +
+  theme_minimal()
+
+# 5.2.5.5 HEATMAP: Comparación de clasificaciones
+tabla_integrada |>
+  count(estado_salud_oms, estado_salud_percentiles) |>
+  ggplot(aes(x = estado_salud_oms, y = estado_salud_percentiles, fill = n)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = n), color = "white", fontface = "bold") +
+  scale_fill_gradient(low = "#3498db", high = "#e74c3c") +
+  labs(
+    title = "Comparación: Clasificación OMS vs Percentiles",
+    subtitle = "Número de personas en cada combinación de clasificaciones",
+    x = "Clasificación OMS",
+    y = "Clasificación por Percentiles",
+    fill = "Cantidad"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 # 5.3 Limpieza, estandarización de valores de derechohabiencia (normalización y recategorización)
 
@@ -525,124 +668,12 @@ tabla_integrada |>
 
 
 
+
+
+
 # 8. ANÁLISIS EXPLORATORIO ----
 # TODO: Análisis descriptivo por grupos
 # TODO: Visualizaciones exploratorias
-
-# ------------------------------------------------------------
-# 8.1 Distribución de registros por grupo de edad
-# (se genera aquí con los datos finales: n = 69,840)
-# ------------------------------------------------------------
-tabla_integrada |>
-  count(grupo_edad) |>
-  ggplot(aes(x = grupo_edad, y = n)) +
-  geom_col(fill = "#3498db", alpha = 0.85) +
-  geom_text(aes(label = n), vjust = -0.4, size = 3) +
-  labs(
-    title = "Distribución de registros por grupo de edad",
-    x = "Grupo de edad",
-    y = "Número de registros"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-# ------------------------------------------------------------
-# 8.2 Distribución del CPO-D por grupo de edad (BOXPLOT)
-# ------------------------------------------------------------
-ggplot(tabla_integrada, aes(x = grupo_edad, y = cpo_individual, fill = grupo_edad)) +
-  geom_boxplot(alpha = 0.7) +
-  geom_hline(yintercept = c(quantile(tabla_integrada$cpo_individual, c(0.20, 0.40, 0.60, 0.80))),
-             linetype = "dashed", color = "red", alpha = 0.5) +
-  labs(
-    title = "Distribución del CPO-D por Grupo de Edad",
-    subtitle = "Las líneas rojas muestran los percentiles 20, 40, 60 y 80 globales",
-    x = "Grupo de Edad",
-    y = "CPO-D Individual"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "none"
-  )
-
-# ------------------------------------------------------------
-# 8.3 Puntos de corte del CPO-D por grupo de edad (Percentiles)
-# ------------------------------------------------------------
-tabla_integrada |>
-  group_by(grupo_edad) |>
-  summarise(
-    n = n(),
-    P20 = quantile(cpo_individual, 0.20),
-    P40 = quantile(cpo_individual, 0.40),
-    P60 = quantile(cpo_individual, 0.60),
-    P80 = quantile(cpo_individual, 0.80)
-  ) |>
-  pivot_longer(cols = c(P20, P40, P60, P80),
-               names_to = "percentil",
-               values_to = "cpod_valor") |>
-  ggplot(aes(x = grupo_edad, y = cpod_valor, color = percentil, group = percentil)) +
-  geom_line(linewidth = 1.2) +
-  geom_point(size = 3) +
-  labs(
-    title = "Puntos de Corte del CPO-D por Grupo de Edad (Percentiles)",
-    subtitle = "Cada línea representa un percentil diferente",
-    x = "Grupo de Edad",
-    y = "Valor CPO-D",
-    color = "Percentil"
-  ) +
-  scale_color_manual(
-    values = c("P20" = "#27ae60", "P40" = "#3498db", "P60" = "#f39c12", "P80" = "#e74c3c"),
-    labels = c("P20 (MUY BAJO/BAJO)", "P40 (BAJO/MODERADO)",
-               "P60 (MODERADO/ALTO)", "P80 (ALTO/MUY ALTO)")
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "right"
-  )
-
-# ------------------------------------------------------------
-# 8.4 Distribución del CPO-D para el Grupo 25-29 años (densidad)
-# ------------------------------------------------------------
-tabla_integrada |>
-  filter(grupo_edad == "25-29") |>
-  ggplot(aes(x = cpo_individual, fill = estado_salud_percentiles)) +
-  geom_density(alpha = 0.6) +
-  geom_vline(xintercept = quantile(
-    tabla_integrada$cpo_individual[tabla_integrada$grupo_edad == "25-29"],
-    c(0.20, 0.40, 0.60, 0.80)
-  ), linetype = "dashed", color = "black") +
-  labs(
-    title = "Distribución del CPO-D para el Grupo 25-29 años",
-    subtitle = "Las líneas verticales marcan los percentiles 20, 40, 60 y 80",
-    x = "CPO-D Individual",
-    y = "Densidad",
-    fill = "Clasificación"
-  ) +
-  scale_fill_manual(
-    values = c("MUY BAJO" = "#27ae60", "BAJO" = "#3498db",
-               "MODERADO" = "#f39c12", "ALTO" = "#e67e22", "MUY ALTO" = "#e74c3c")
-  ) +
-  theme_minimal()
-
-# ------------------------------------------------------------
-# 8.5 Heatmap: Comparación de clasificaciones OMS vs Percentiles
-# ------------------------------------------------------------
-tabla_integrada |>
-  count(estado_salud_oms, estado_salud_percentiles) |>
-  ggplot(aes(x = estado_salud_oms, y = estado_salud_percentiles, fill = n)) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = n), color = "white", fontface = "bold") +
-  scale_fill_gradient(low = "#3498db", high = "#e74c3c") +
-  labs(
-    title = "Comparación: Clasificación OMS vs Percentiles",
-    subtitle = "Número de personas en cada combinación de clasificaciones",
-    x = "Clasificación OMS",
-    y = "Clasificación por Percentiles",
-    fill = "Cantidad"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # install.packages("gtsummary")
 library(gtsummary)
