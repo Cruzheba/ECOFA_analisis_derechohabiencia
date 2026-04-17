@@ -1,19 +1,21 @@
 # ==============================================================================
 # ANÁLISIS DEl ESTADO DE SALUD BUCAL EN FUNCIÓN DE DERECHOHABIENCIA
 # ==============================================================================
-# Proyecto: Evaluación del estado de salud bucal en pacientes que acuden a los servicios odontológicos universitarios: Análisis de la asociación con la pobreza y la derechohabiencia a servicios de salud.
+# Proyecto: Evaluación del estado de salud bucal en pacientes que acuden a los servicios odontológicos universitarios: Análisis de la asociación con la derechohabiencia a servicios de salud.
 # Repositorio: https://github.com/Cruzheba/ECOFA_analisis_derechohabiencia
 # Autor: [CRUZ HERNANDEZ BARREDA]
 # Fecha: 16 de abril de 2026
-# Descripción: Análisis de la asociación entre derechohabiencia y el estado de salud bucal de acuerdo con el indice cpo, ajustando por variables socioeconómicas.
+# Descripción: Análisis de la asociación entre derechohabiencia y el estado de salud bucal de acuerdo con el indice cpo.
 # ==============================================================================
 
-# 1. CARGAR LIBRERÍAS --------
+# 1. CARGAR LIBRERÍAS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 library(tidyverse)
+library(gtsummary)
+library(flextable)
 
 
-
-# 2. CARGAR DATOS Y CREAR COLUMNA IDENTIFICADORA ----
+# 2. CARGAR DATOS Y CREAR COLUMNA IDENTIFICADORA -------------------------------------------------------------------------------------------------------------------------------------------
 
 # 2.1 Interrogación ficha (variables sociodemográficas y derechohabiencia)
 interrogación_ficha <- read_csv("ficha_de_interrogacion.csv") |>
@@ -57,8 +59,7 @@ cat("✅ Todas las tablas tienen la columna 'clinica_no_expediente'\n")
 
 
 
-
-# 3. INTEGRACIÓN DE TABLAS ----
+# 3. INTEGRACIÓN DE TABLAS -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # 3.1 Integrar las 5 tablas usando tratamiento_gen como base
 tabla_integrada <- tratamiento_gen |>
@@ -93,24 +94,21 @@ rm(interrogación_ficha, antecedentes_patologicos, tratamiento_gen,
 cat("✅ Tablas originales eliminadas (solo queda tabla_integrada)\n\n")
 
 # 3.4 Reportar resultados
-
 cantidad_registros_iniciales <- nrow(tabla_integrada)
-
 cat("✅ Variable creada: cantidad_registros_iniciales =", cantidad_registros_iniciales, "\n\n")
 
 
 
-# 4. FILTRAR REGISTROS AUTORIZADOS
+# 4. LIMPIEZA, TRANSFORMACIÓN Y CREACIÓN DE VARIABLES -----------------------------------------------------------------------------------------------------------------------------------------
 
-# 4.1 Filtrar registros aceptados
+# 4.1 FILTRAR REGISTROS AUTORIZADOS
 tabla_integrada <- tabla_integrada |>
   filter(registro_aceptado == TRUE)
 
 cat("✅ Filtro aplicado: solo registros aceptados\n")
 cat("Registros restantes:", nrow(tabla_integrada), "\n\n")
 
-# 4.2 Reportar resultados
-
+# REPORTAR RESULTADOS
 cantidad_registros_autorizados <- nrow(tabla_integrada)
 
 cat("✅ Variable creada: cantidad_registros_autorizados =", cantidad_registros_autorizados, "\n")
@@ -118,12 +116,9 @@ cat("Registros eliminados:", cantidad_registros_iniciales - cantidad_registros_a
     "(", round((cantidad_registros_iniciales - cantidad_registros_autorizados) / cantidad_registros_iniciales * 100, 2), "%)\n\n")
 
 
+# 4.2 CONFORMACION DE VARIABLE (EDAD) Y GRUPOS ESTARIOS
 
-# 5. LIMPIEZA, TRANSFORMACIÓN Y CREACIÓN DE VARIABLES ----
-
-# 5.1 Grupos de edad
-
-# 5.1.1 Calcular edad en años (enteros) a partir de fecha_nacimiento y fecha_inicio
+# 4.2.1 CALCULAR EDAD EN AÑOS A PARTIR DE "fecha_nacimiento" y "fecha_inicio"
 tabla_integrada <- tabla_integrada |>
   mutate(
     edad = as.integer(as.numeric(difftime(fecha_inicio, fecha_nacimiento, units = "days")) / 365.25),
@@ -135,10 +130,9 @@ cat("Resumen de la variable edad:\n")
 print(summary(tabla_integrada$edad))
 cat("\n")
 
-# 5.1.2 Filtrar edades válidas (adultos: 18-100 años)
+# 4.2.2 FILTRAR EDADES VALIDAS (ADULTOS: 18-100 AÑOS)
 
 # Contar casos antes del filtro
-
 negativos <- sum(tabla_integrada$edad < 0, na.rm = TRUE)
 menores <- sum(tabla_integrada$edad >= 0 & tabla_integrada$edad < 18, na.rm = TRUE)
 mayores_100 <- sum(tabla_integrada$edad > 100, na.rm = TRUE)
@@ -148,14 +142,11 @@ excluidos_por_edad <- negativos + menores + mayores_100 + na_edad
 # Aplicar filtro
 tabla_integrada <- tabla_integrada |>
   filter(!is.na(edad), edad >= 18, edad <= 100)
-
 cantidad_registros_edad <- nrow(tabla_integrada)
 
-# 5.1.3 Reportar resultados
+# Reportar resultados
 cat("✅ Filtro de edad aplicado (18-100 años)\n\n")
-
 cat("=== REGISTROS ELIMINADOS ===\n")
-
 cat("Edades negativas:", negativos, "\n")
 cat("Menores (0-17 años):", menores, "\n")
 cat("Mayores a 100 años:", mayores_100, "\n")
@@ -163,7 +154,6 @@ cat("Valores NA:", na_edad, "\n")
 cat("Total eliminado:", cantidad_registros_autorizados - nrow(tabla_integrada), "\n\n")
 cat("=== REGISTROS RESTANTES ===\n")
 cat("Total:", nrow(tabla_integrada), "registros\n\n")
-
 
 # Crear grupos de edad
 tabla_integrada <- tabla_integrada |>
@@ -196,28 +186,9 @@ print(table(tabla_integrada$grupo_edad, useNA = "ifany"))
 cat("\n")
 
 
-#----------------------------------------------------------------------------------------------------------------------------------------------------
-#Plot de grupos de edad (se deberá generar al final porque de estos registros todavía de eliminann algunos por filtros posteriores)
-tabla_integrada |>
-  count(grupo_edad) |>
-  ggplot(aes(x = grupo_edad, y = n)) +
-  geom_col(fill = "#3498db", alpha = 0.85) +
-  geom_text(aes(label = n), vjust = -0.4, size = 3) +
-  labs(
-    title = "Distribución de registros por grupo de edad",
-    x = "Grupo de edad",
-    y = "Número de registros"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-#----------------------------------------------------------------------------------------------------------------------------------------------------
-
-
 # 5.2 Càlculo del índice CPO-D inicial
 
-# 5.2.1 Eliminar registros que no contienen información sobre el índice CPO-D inicial (todas las columnas del índice = 0)
-# Filtrar registros con CPO-D inicial válido
-# Eliminar registros donde TODAS las columnas del índice CPO-D inicial sean 0
+# 5.2.1 Filtrar registros con CPO-D inicial válido (eliminar registros cuyos valores del índice y total de dientes es = 0) 
 antes_filtro_cpod <- nrow(tabla_integrada)
 
 tabla_integrada <- tabla_integrada |>
@@ -672,11 +643,22 @@ tabla_integrada |>
 
 
 # 8. ANÁLISIS EXPLORATORIO ----
-# TODO: Análisis descriptivo por grupos
-# TODO: Visualizaciones exploratorias
 
-# install.packages("gtsummary")
-library(gtsummary)
+#8.1 GRÁFICA DE BARRAS PARA FRECUENCIA DE REGISTROS POR GRUPO DE EDAD 
+tabla_integrada |>
+  count(grupo_edad) |>
+  ggplot(aes(x = grupo_edad, y = n)) +
+  geom_col(fill = "#3498db", alpha = 0.85) +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  labs(
+    title = "Distribución de registros por grupo de edad",
+    x = "Grupo de edad",
+    y = "Número de registros"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
 
 # Convertir variables categóricas a factores con orden lógico
 tabla_integrada <- tabla_integrada |>
@@ -698,9 +680,7 @@ tabla_integrada <- tabla_integrada |>
     ))
   )
 
-# ============================================================
 # TABLA 1: Características sociodemográficas generales
-# ============================================================
 tabla_1 <- tabla_integrada |>
   select(sexo, grupo_edad, escolaridad_final, institucion_derechohabiencia_std) |>
   tbl_summary(
@@ -720,9 +700,7 @@ tabla_1 <- tabla_integrada |>
 
 tabla_1
 
-# ============================================================
 # TABLA 2: Índice CPO-D y estado de salud bucal por sexo
-# ============================================================
 tabla_2 <- tabla_integrada |>
   select(sexo, cpo_individual, estado_salud_percentiles) |>
   tbl_summary(
@@ -748,10 +726,7 @@ tabla_2 <- tabla_integrada |>
 
 tabla_2
 
-# ============================================================
 # TABLA 3: Estado de salud bucal según derechohabiencia
-# (variable de exposición principal del estudio)
-# ============================================================
 tabla_3 <- tabla_integrada |>
   select(institucion_derechohabiencia_std, cpo_individual, 
          estado_salud_percentiles, escolaridad_final) |>
@@ -779,10 +754,8 @@ tabla_3 <- tabla_integrada |>
 
 tabla_3
 
-# install.packages("flextable")
-library(flextable)
 
-# Exportar cada tabla por separado
+# EXPORTAR TABLAS A .DOCX
 tabla_1 |>
   as_flex_table() |>
   save_as_docx(path = "tabla_1_sociodemografica.docx")
