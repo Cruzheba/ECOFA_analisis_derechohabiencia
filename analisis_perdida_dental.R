@@ -13,6 +13,8 @@
 library(tidyverse)
 library(gtsummary)
 library(flextable)
+library(stringdist)
+library(ggplot2)
 
 
 # 2. CARGAR DATOS Y CREAR COLUMNA IDENTIFICADORA -------------------------------------------------------------------------------------------------------------------------------------------
@@ -101,24 +103,9 @@ cat("✅ Variable creada: cantidad_registros_iniciales =", cantidad_registros_in
 
 # 4. LIMPIEZA, TRANSFORMACIÓN Y CREACIÓN DE VARIABLES -----------------------------------------------------------------------------------------------------------------------------------------
 
-# 4.1 FILTRAR REGISTROS AUTORIZADOS
-tabla_integrada <- tabla_integrada |>
-  filter(registro_aceptado == TRUE)
+# CREACIÓN DE VARIABLES
 
-cat("✅ Filtro aplicado: solo registros aceptados\n")
-cat("Registros restantes:", nrow(tabla_integrada), "\n\n")
-
-# REPORTAR RESULTADOS
-cantidad_registros_autorizados <- nrow(tabla_integrada)
-
-cat("✅ Variable creada: cantidad_registros_autorizados =", cantidad_registros_autorizados, "\n")
-cat("Registros eliminados:", cantidad_registros_iniciales - cantidad_registros_autorizados, 
-    "(", round((cantidad_registros_iniciales - cantidad_registros_autorizados) / cantidad_registros_iniciales * 100, 2), "%)\n\n")
-
-
-# 4.2 CONFORMACION DE VARIABLE (EDAD) Y GRUPOS ESTARIOS
-
-# 4.2.1 CALCULAR EDAD EN AÑOS A PARTIR DE "fecha_nacimiento" y "fecha_inicio"
+# 4.2.1Calcular edad a partir de "fecha_nacimiento" y "fecha_inicio"
 tabla_integrada <- tabla_integrada |>
   mutate(
     edad = as.integer(as.numeric(difftime(fecha_inicio, fecha_nacimiento, units = "days")) / 365.25),
@@ -129,31 +116,6 @@ cat("✅ Columna 'edad' creada exitosamente\n")
 cat("Resumen de la variable edad:\n")
 print(summary(tabla_integrada$edad))
 cat("\n")
-
-# 4.2.2 FILTRAR EDADES VALIDAS (ADULTOS: 18-100 AÑOS)
-
-# Contar casos antes del filtro
-negativos <- sum(tabla_integrada$edad < 0, na.rm = TRUE)
-menores <- sum(tabla_integrada$edad >= 0 & tabla_integrada$edad < 18, na.rm = TRUE)
-mayores_100 <- sum(tabla_integrada$edad > 100, na.rm = TRUE)
-na_edad <- sum(is.na(tabla_integrada$edad))
-excluidos_por_edad <- negativos + menores + mayores_100 + na_edad
-
-# Aplicar filtro
-tabla_integrada <- tabla_integrada |>
-  filter(!is.na(edad), edad >= 18, edad <= 100)
-cantidad_registros_edad <- nrow(tabla_integrada)
-
-# Reportar resultados
-cat("✅ Filtro de edad aplicado (18-100 años)\n\n")
-cat("=== REGISTROS ELIMINADOS ===\n")
-cat("Edades negativas:", negativos, "\n")
-cat("Menores (0-17 años):", menores, "\n")
-cat("Mayores a 100 años:", mayores_100, "\n")
-cat("Valores NA:", na_edad, "\n")
-cat("Total eliminado:", cantidad_registros_autorizados - nrow(tabla_integrada), "\n\n")
-cat("=== REGISTROS RESTANTES ===\n")
-cat("Total:", nrow(tabla_integrada), "registros\n\n")
 
 # Crear grupos de edad
 tabla_integrada <- tabla_integrada |>
@@ -186,30 +148,8 @@ print(table(tabla_integrada$grupo_edad, useNA = "ifany"))
 cat("\n")
 
 
-# 5.2 Càlculo del índice CPO-D inicial
+# 4.2.2 Crear columna cpo_individual después de la columna "luz"
 
-# 5.2.1 Filtrar registros con CPO-D inicial válido (eliminar registros cuyos valores del índice y total de dientes es = 0) 
-antes_filtro_cpod <- nrow(tabla_integrada)
-
-tabla_integrada <- tabla_integrada |>
-  filter(!(inicial_cariados == 0 & inicial_perdidos == 0 & 
-           inicial_obturados == 0 & inicial_total_dientes == 0))
-
-despues_filtro_cpod <- nrow(tabla_integrada)
-
-# Reportar resultados
-cat("✅ Filtro de CPO-D inicial aplicado\n\n")
-cat("=== REGISTROS ELIMINADOS ===\n")
-cat("Registros con CPO-D inicial = 0 (todas las columnas):", 
-    antes_filtro_cpod - despues_filtro_cpod, "\n")
-cat("Porcentaje eliminado:", 
-    round((antes_filtro_cpod - despues_filtro_cpod) / antes_filtro_cpod * 100, 2), "%\n\n")
-cat("=== REGISTROS RESTANTES ===\n")
-cat("antes_filtro_cpod =", antes_filtro_cpod, "\n")
-cat("despues_filtro_cpod =", despues_filtro_cpod, "\n\n")
-
-
-# 5.2.2 Crear columna cpo_individual después de la columna "luz"
 tabla_integrada <- tabla_integrada |>
   mutate(
     cpo_individual = inicial_cariados + inicial_perdidos + inicial_obturados,
@@ -221,31 +161,8 @@ tabla_integrada |>
   select(luz, cpo_individual, inicial_cariados, inicial_perdidos, inicial_obturados) |>
   head(10)
 
-
 # Ver estadísticas descriptivas
 summary(tabla_integrada$cpo_individual)
-
-# 5.2.3 Eliminar registros con CPO-D > 32 (datos inconsistentes)
-
-# Contar antes de filtrar
-antes_filtro_cpod_32 <- nrow(tabla_integrada)
-
-# Eliminar registros con CPO-D > 32 (biológicamente imposible)
-tabla_integrada <- tabla_integrada |>
-  filter(cpo_individual <= 32)
-
-# Contar después de filtrar
-despues_filtro_cpod_32 <- nrow(tabla_integrada)
-
-# Reportar eliminación
-cat("\n=== FILTRO: CPO-D > 32 ===\n")
-cat("Registros antes:", antes_filtro_cpod_32, "\n")
-cat("Registros después:", despues_filtro_cpod_32, "\n")
-cat("Registros eliminados:", antes_filtro_cpod_32 - despues_filtro_cpod_32, "\n")
-cat("Porcentaje eliminado:", 
-    round((antes_filtro_cpod_32 - despues_filtro_cpod_32) / antes_filtro_cpod_32 * 100, 2), 
-    "%\n\n")
-
 
 # 5.2.4 Categorización del estado de salud bucal en función del CPOD ajustado por grupo de edad en relación con clasificación de la OMS y propia ajustada en percentiles.
 
@@ -315,134 +232,6 @@ cat("\n=== COMPARACIÓN GENERAL ===\n")
 tabla_integrada |>
   count(estado_salud_oms, estado_salud_percentiles) |>
   pivot_wider(names_from = estado_salud_percentiles, values_from = n, values_fill = 0)
-
-
-# 5.2.5 GRÁFICA DE PERCENTILES EXPLICATIVA
-
-library(ggplot2)
-
-# 5.2.5.1 GRÁFICA DE CAJAS (BOXPLOT) por grupo de edad
-# Muestra la distribución del CPO-D en cada grupo etario
-ggplot(tabla_integrada, aes(x = grupo_edad, y = cpo_individual, fill = grupo_edad)) +
-  geom_boxplot(alpha = 0.7) +
-  geom_hline(yintercept = c(quantile(tabla_integrada$cpo_individual, c(0.20, 0.40, 0.60, 0.80))), 
-             linetype = "dashed", color = "red", alpha = 0.5) +
-  labs(
-    title = "Distribución del CPO-D por Grupo de Edad",
-    subtitle = "Las líneas rojas muestran los percentiles 20, 40, 60 y 80 globales",
-    x = "Grupo de Edad",
-    y = "CPO-D Individual"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "none"
-  )
-
-# 5.2.5.2 GRÁFICA DE PERCENTILES con líneas de corte
-tabla_integrada |>
-  group_by(grupo_edad) |>
-  summarise(
-    n = n(),
-    P20 = quantile(cpo_individual, 0.20),
-    P40 = quantile(cpo_individual, 0.40),
-    P60 = quantile(cpo_individual, 0.60),
-    P80 = quantile(cpo_individual, 0.80)
-  ) |>
-  pivot_longer(cols = c(P20, P40, P60, P80), 
-               names_to = "percentil", 
-               values_to = "cpod_valor") |>
-  ggplot(aes(x = grupo_edad, y = cpod_valor, color = percentil, group = percentil)) +
-  geom_line(linewidth = 1.2) +
-  geom_point(size = 3) +
-  labs(
-    title = "Puntos de Corte del CPO-D por Grupo de Edad (Percentiles)",
-    subtitle = "Cada línea representa un percentil diferente",
-    x = "Grupo de Edad",
-    y = "Valor CPO-D",
-    color = "Percentil"
-  ) +
-  scale_color_manual(
-    values = c("P20" = "#27ae60", "P40" = "#3498db", "P60" = "#f39c12", "P80" = "#e74c3c"),
-    labels = c("P20 (MUY BAJO/BAJO)", "P40 (BAJO/MODERADO)", 
-               "P60 (MODERADO/ALTO)", "P80 (ALTO/MUY ALTO)")
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "right"
-  )
-
-# 5.2.5.3 TABLA RESUMEN con puntos de corte
-cat("\n=== PUNTOS DE CORTE POR GRUPO DE EDAD ===\n")
-tabla_integrada |>
-  group_by(grupo_edad) |>
-  summarise(
-    n = n(),
-    `Min` = min(cpo_individual),
-    `P20 (MUY BAJO)` = quantile(cpo_individual, 0.20),
-    `P40 (BAJO)` = quantile(cpo_individual, 0.40),
-    `P60 (MODERADO)` = quantile(cpo_individual, 0.60),
-    `P80 (ALTO)` = quantile(cpo_individual, 0.80),
-    `Max` = max(cpo_individual),
-    `Media` = round(mean(cpo_individual), 1)
-  ) |>
-  print(n = 20)
-
-# Tabla de rangos exactos por grupo de edad y categoría
-tabla_integrada |>
-  group_by(grupo_edad) |>
-  summarise(
-    n = n(),
-    `MUY BAJO (0-P20)`    = paste0("0 - ", quantile(cpo_individual, 0.20)),
-    `BAJO (P20-P40)`       = paste0(quantile(cpo_individual, 0.20) + 1, " - ", quantile(cpo_individual, 0.40)),
-    `MODERADO (P40-P60)`   = paste0(quantile(cpo_individual, 0.40) + 1, " - ", quantile(cpo_individual, 0.60)),
-    `ALTO (P60-P80)`       = paste0(quantile(cpo_individual, 0.60) + 1, " - ", quantile(cpo_individual, 0.80)),
-    `MUY ALTO (>P80)`      = paste0("> ", quantile(cpo_individual, 0.80))
-  ) |>
-  print(n = 20, width = Inf)
-
-
-# 5.2.5.4 GRÁFICA DE DENSIDAD con áreas coloreadas por clasificación
-# Ejemplo para un grupo específico (25-29 años)
-tabla_integrada |>
-  filter(grupo_edad == "25-29") |>
-  ggplot(aes(x = cpo_individual, fill = estado_salud_percentiles)) +
-  geom_density(alpha = 0.6) +
-  geom_vline(xintercept = quantile(
-    tabla_integrada$cpo_individual[tabla_integrada$grupo_edad == "25-29"], 
-    c(0.20, 0.40, 0.60, 0.80)
-  ), linetype = "dashed", color = "black") +
-  labs(
-    title = "Distribución del CPO-D para el Grupo 25-29 años",
-    subtitle = "Las líneas verticales marcan los percentiles 20, 40, 60 y 80",
-    x = "CPO-D Individual",
-    y = "Densidad",
-    fill = "Clasificación"
-  ) +
-  scale_fill_manual(
-    values = c("MUY BAJO" = "#27ae60", "BAJO" = "#3498db", 
-               "MODERADO" = "#f39c12", "ALTO" = "#e67e22", "MUY ALTO" = "#e74c3c")
-  ) +
-  theme_minimal()
-
-# 5.2.5.5 HEATMAP: Comparación de clasificaciones
-tabla_integrada |>
-  count(estado_salud_oms, estado_salud_percentiles) |>
-  ggplot(aes(x = estado_salud_oms, y = estado_salud_percentiles, fill = n)) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = n), color = "white", fontface = "bold") +
-  scale_fill_gradient(low = "#3498db", high = "#e74c3c") +
-  labs(
-    title = "Comparación: Clasificación OMS vs Percentiles",
-    subtitle = "Número de personas en cada combinación de clasificaciones",
-    x = "Clasificación OMS",
-    y = "Clasificación por Percentiles",
-    fill = "Cantidad"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 
 # 5.3 Limpieza, estandarización de valores de derechohabiencia (normalización y recategorización)
 
@@ -552,9 +341,6 @@ tabla_integrada |>
 
 # 5.4.2 Coincidencia difusa para x casos categorizados en "OTROS".
 
-# install.packages("stringdist")
-library(stringdist)
-
 # Definir palabras clave por categoría para matching difuso
 palabras_clave <- list(
   PRIMARIA = c("primaria", "primer", "segundo", "tercero", "cuarto", "quinto", "sexto"),
@@ -621,7 +407,102 @@ tabla_integrada |>
 # Contar registros antes de eliminar
 antes_supr_rev_man <- nrow(tabla_integrada)
 
-# Eliminar registros con "REVISAR MANUAL"
+
+
+
+
+
+
+
+
+
+
+# 4.1 FILTRADO DE REGISTROS
+
+# 4.1.1 FILTRAR REGISTROS AUTORIZADOS
+tabla_integrada <- tabla_integrada |>
+  filter(registro_aceptado == TRUE)
+
+cat("✅ Filtro aplicado: solo registros aceptados\n")
+cat("Registros restantes:", nrow(tabla_integrada), "\n\n")
+
+# REPORTAR RESULTADOS
+cantidad_registros_autorizados <- nrow(tabla_integrada)
+
+cat("✅ Variable creada: cantidad_registros_autorizados =", cantidad_registros_autorizados, "\n")
+cat("Registros eliminados:", cantidad_registros_iniciales - cantidad_registros_autorizados, 
+    "(", round((cantidad_registros_iniciales - cantidad_registros_autorizados) / cantidad_registros_iniciales * 100, 2), "%)\n\n")
+
+# 4.1.2 FILTRAR EDADES VALIDAS (ADULTOS: 18-100 AÑOS)
+
+# Contar casos antes del filtro
+negativos <- sum(tabla_integrada$edad < 0, na.rm = TRUE)
+menores <- sum(tabla_integrada$edad >= 0 & tabla_integrada$edad < 18, na.rm = TRUE)
+mayores_100 <- sum(tabla_integrada$edad > 100, na.rm = TRUE)
+na_edad <- sum(is.na(tabla_integrada$edad))
+excluidos_por_edad <- negativos + menores + mayores_100 + na_edad
+
+# Aplicar filtro
+tabla_integrada <- tabla_integrada |>
+  filter(!is.na(edad), edad >= 18, edad <= 100)
+cantidad_registros_edad <- nrow(tabla_integrada)
+
+# Reportar resultados
+cat("✅ Filtro de edad aplicado (18-100 años)\n\n")
+cat("=== REGISTROS ELIMINADOS ===\n")
+cat("Edades negativas:", negativos, "\n")
+cat("Menores (0-17 años):", menores, "\n")
+cat("Mayores a 100 años:", mayores_100, "\n")
+cat("Valores NA:", na_edad, "\n")
+cat("Total eliminado:", cantidad_registros_autorizados - nrow(tabla_integrada), "\n\n")
+cat("=== REGISTROS RESTANTES ===\n")
+cat("Total:", nrow(tabla_integrada), "registros\n\n")
+
+# 4.1.3 FILTRAR REGISTROS CON CPO-D INICIAL VÁLIDO 
+
+# FILTRAR REGISTROS CUYOS VALORES DEL ÍNDICE Y TOTAL DE DIENTES NO ES = 0) 
+
+antes_filtro_cpod <- nrow(tabla_integrada)
+
+tabla_integrada <- tabla_integrada |>
+  filter(!(inicial_cariados == 0 & inicial_perdidos == 0 & 
+           inicial_obturados == 0 & inicial_total_dientes == 0))
+
+despues_filtro_cpod <- nrow(tabla_integrada)
+
+# Reportar resultados
+cat("✅ Filtro de CPO-D inicial aplicado\n\n")
+cat("=== REGISTROS ELIMINADOS ===\n")
+cat("Registros con CPO-D inicial = 0 (todas las columnas):", 
+    antes_filtro_cpod - despues_filtro_cpod, "\n")
+cat("Porcentaje eliminado:", 
+    round((antes_filtro_cpod - despues_filtro_cpod) / antes_filtro_cpod * 100, 2), "%\n\n")
+cat("=== REGISTROS RESTANTES ===\n")
+cat("antes_filtro_cpod =", antes_filtro_cpod, "\n")
+cat("despues_filtro_cpod =", despues_filtro_cpod, "\n\n")
+
+# FILTRAR REGISTROS CUYO VALOR NO ES > 32
+
+# Contar antes de filtrar
+antes_filtro_cpod_32 <- nrow(tabla_integrada)
+
+# Eliminar registros con CPO-D > 32 (biológicamente imposible)
+tabla_integrada <- tabla_integrada |>
+  filter(cpo_individual <= 32)
+
+# Contar después de filtrar
+despues_filtro_cpod_32 <- nrow(tabla_integrada)
+
+# Reportar eliminación
+cat("\n=== FILTRO: CPO-D > 32 ===\n")
+cat("Registros antes:", antes_filtro_cpod_32, "\n")
+cat("Registros después:", despues_filtro_cpod_32, "\n")
+cat("Registros eliminados:", antes_filtro_cpod_32 - despues_filtro_cpod_32, "\n")
+cat("Porcentaje eliminado:", 
+    round((antes_filtro_cpod_32 - despues_filtro_cpod_32) / antes_filtro_cpod_32 * 100, 2), 
+    "%\n\n")
+
+# Eliminar registros con "REVISAR MANUAL" en escolaridad_final
 tabla_integrada <- tabla_integrada |>
   filter(escolaridad_final != "REVISAR MANUAL")
 
@@ -636,6 +517,148 @@ cat("Registros eliminados:", antes_supr_rev_man - despues_supr_rev_man, "\n")
 # Verificar que ya no hay "REVISAR MANUAL"
 tabla_integrada |>
   count(escolaridad_final, sort = TRUE)
+
+
+
+
+
+
+# 5.2.5 GRÁFICA DE PERCENTILES EXPLICATIVA
+
+# 5.2.5.1 GRÁFICA DE CAJAS (BOXPLOT) por grupo de edad
+
+# Muestra la distribución del CPO-D en cada grupo etario
+
+ggplot(tabla_integrada, aes(x = grupo_edad, y = cpo_individual, fill = grupo_edad)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_hline(yintercept = c(quantile(tabla_integrada$cpo_individual, c(0.20, 0.40, 0.60, 0.80))), 
+             linetype = "dashed", color = "red", alpha = 0.5) +
+  labs(
+    title = "Distribución del CPO-D por Grupo de Edad",
+    subtitle = "Las líneas rojas muestran los percentiles 20, 40, 60 y 80 globales",
+    x = "Grupo de Edad",
+    y = "CPO-D Individual"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+# 5.2.5.2 GRÁFICA DE PERCENTILES con líneas de corte
+
+tabla_integrada |>
+  group_by(grupo_edad) |>
+  summarise(
+    n = n(),
+    P20 = quantile(cpo_individual, 0.20),
+    P40 = quantile(cpo_individual, 0.40),
+    P60 = quantile(cpo_individual, 0.60),
+    P80 = quantile(cpo_individual, 0.80)
+  ) |>
+  pivot_longer(cols = c(P20, P40, P60, P80), 
+               names_to = "percentil", 
+               values_to = "cpod_valor") |>
+  ggplot(aes(x = grupo_edad, y = cpod_valor, color = percentil, group = percentil)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  labs(
+    title = "Puntos de Corte del CPO-D por Grupo de Edad (Percentiles)",
+    subtitle = "Cada línea representa un percentil diferente",
+    x = "Grupo de Edad",
+    y = "Valor CPO-D",
+    color = "Percentil"
+  ) +
+  scale_color_manual(
+    values = c("P20" = "#27ae60", "P40" = "#3498db", "P60" = "#f39c12", "P80" = "#e74c3c"),
+    labels = c("P20 (MUY BAJO/BAJO)", "P40 (BAJO/MODERADO)", 
+               "P60 (MODERADO/ALTO)", "P80 (ALTO/MUY ALTO)")
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "right"
+  )
+
+# 5.2.5.3 TABLA RESUMEN con puntos de corte
+
+cat("\n=== PUNTOS DE CORTE POR GRUPO DE EDAD ===\n")
+tabla_integrada |>
+  group_by(grupo_edad) |>
+  summarise(
+    n = n(),
+    `Min` = min(cpo_individual),
+    `P20 (MUY BAJO)` = quantile(cpo_individual, 0.20),
+    `P40 (BAJO)` = quantile(cpo_individual, 0.40),
+    `P60 (MODERADO)` = quantile(cpo_individual, 0.60),
+    `P80 (ALTO)` = quantile(cpo_individual, 0.80),
+    `Max` = max(cpo_individual),
+    `Media` = round(mean(cpo_individual), 1)
+  ) |>
+  print(n = 20)
+
+# Tabla de rangos exactos por grupo de edad y categoría
+
+tabla_integrada |>
+  group_by(grupo_edad) |>
+  summarise(
+    n = n(),
+    `MUY BAJO (0-P20)`    = paste0("0 - ", quantile(cpo_individual, 0.20)),
+    `BAJO (P20-P40)`       = paste0(quantile(cpo_individual, 0.20) + 1, " - ", quantile(cpo_individual, 0.40)),
+    `MODERADO (P40-P60)`   = paste0(quantile(cpo_individual, 0.40) + 1, " - ", quantile(cpo_individual, 0.60)),
+    `ALTO (P60-P80)`       = paste0(quantile(cpo_individual, 0.60) + 1, " - ", quantile(cpo_individual, 0.80)),
+    `MUY ALTO (>P80)`      = paste0("> ", quantile(cpo_individual, 0.80))
+  ) |>
+  print(n = 20, width = Inf)
+
+
+# 5.2.5.4 GRÁFICA DE DENSIDAD con áreas coloreadas por clasificación
+
+# Ejemplo para un grupo específico (25-29 años)
+
+tabla_integrada |>
+  filter(grupo_edad == "25-29") |>
+  ggplot(aes(x = cpo_individual, fill = estado_salud_percentiles)) +
+  geom_density(alpha = 0.6) +
+  geom_vline(xintercept = quantile(
+    tabla_integrada$cpo_individual[tabla_integrada$grupo_edad == "25-29"], 
+    c(0.20, 0.40, 0.60, 0.80)
+  ), linetype = "dashed", color = "black") +
+  labs(
+    title = "Distribución del CPO-D para el Grupo 25-29 años",
+    subtitle = "Las líneas verticales marcan los percentiles 20, 40, 60 y 80",
+    x = "CPO-D Individual",
+    y = "Densidad",
+    fill = "Clasificación"
+  ) +
+  scale_fill_manual(
+    values = c("MUY BAJO" = "#27ae60", "BAJO" = "#3498db", 
+               "MODERADO" = "#f39c12", "ALTO" = "#e67e22", "MUY ALTO" = "#e74c3c")
+  ) +
+  theme_minimal()
+
+# 5.2.5.5 HEATMAP: Comparación de clasificaciones
+
+tabla_integrada |>
+  count(estado_salud_oms, estado_salud_percentiles) |>
+  ggplot(aes(x = estado_salud_oms, y = estado_salud_percentiles, fill = n)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = n), color = "white", fontface = "bold") +
+  scale_fill_gradient(low = "#3498db", high = "#e74c3c") +
+  labs(
+    title = "Comparación: Clasificación OMS vs Percentiles",
+    subtitle = "Número de personas en cada combinación de clasificaciones",
+    x = "Clasificación OMS",
+    y = "Clasificación por Percentiles",
+    fill = "Cantidad"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+
 
 
 
