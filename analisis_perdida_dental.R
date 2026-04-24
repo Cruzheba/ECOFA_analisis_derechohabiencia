@@ -14,7 +14,7 @@ library(tidyverse)
 library(gtsummary)
 library(flextable)
 library(stringdist)
-library(ggplot2)
+
 
 
 # 2. CARGAR DATOS Y CREAR COLUMNA IDENTIFICADORA -------------------------------------------------------------------------------------------------------------------------------------------
@@ -164,7 +164,7 @@ tabla_integrada |>
 # Ver estadísticas descriptivas
 summary(tabla_integrada$cpo_individual)
 
-# 5.2.4 Categorización del estado de salud bucal en función del CPOD ajustado por grupo de edad en relación con clasificación de la OMS y propia ajustada en percentiles.
+# 4.2.3 Categorización del estado de salud bucal según clasificación OMS (puntos de corte fijos por grupo de edad)
 
 # Crear ambas clasificaciones usando los grupos de edad existentes
 tabla_integrada <- tabla_integrada |>
@@ -202,38 +202,10 @@ tabla_integrada <- tabla_integrada |>
       TRUE ~ NA_character_
     ),
     .after = cpo_individual
-  ) |>
-  # CLASIFICACIÓN POR PERCENTILES (ajustada a cada grupo de edad)
-  group_by(grupo_edad) |>
-  mutate(
-    percentil_cpod = percent_rank(cpo_individual),
-    estado_salud_percentiles = case_when(
-      percentil_cpod <= 0.20 ~ "MUY BAJO",
-      percentil_cpod <= 0.40 ~ "BAJO",
-      percentil_cpod <= 0.60 ~ "MODERADO",
-      percentil_cpod <= 0.80 ~ "ALTO",
-      percentil_cpod > 0.80 ~ "MUY ALTO",
-      TRUE ~ NA_character_
-    ),
-    .after = estado_salud_oms
-  ) |>
-  ungroup()
+  )
 
-# Verificar resultados
-cat("=== CLASIFICACIÓN OMS POR GRUPO DE EDAD ===\n")
-tabla_integrada |>
-  count(grupo_edad, estado_salud_oms)
 
-cat("\n=== CLASIFICACIÓN POR PERCENTILES ===\n")
-tabla_integrada |>
-  count(grupo_edad, estado_salud_percentiles)
-
-cat("\n=== COMPARACIÓN GENERAL ===\n")
-tabla_integrada |>
-  count(estado_salud_oms, estado_salud_percentiles) |>
-  pivot_wider(names_from = estado_salud_percentiles, values_from = n, values_fill = 0)
-
-# 5.3 Limpieza, estandarización de valores de derechohabiencia (normalización y recategorización)
+# 4.3 Limpieza, estandarización de valores de derechohabiencia (normalización y recategorización)
 
 # Función para estandarizar instituciones de derechohabiencia
 tabla_integrada <- tabla_integrada |>
@@ -286,9 +258,9 @@ tabla_integrada |>
   count(institucion_derechohabiencia_std, sort = TRUE)
 
 
-# 5.4 Limpieza, estandarización de valores de escolaridad (normalización y recategorización)
+# 4.4 Limpieza, estandarización de valores de escolaridad (normalización y recategorización)
 
-# 5.4.1 Estandarizar escolaridad (versión mejorada)
+# 4.4.1 Estandarizar escolaridad (versión mejorada)
 
 tabla_integrada <- tabla_integrada |>
   mutate(
@@ -339,7 +311,7 @@ tabla_integrada <- tabla_integrada |>
 tabla_integrada |>
   count(escolaridad_std, sort = TRUE)
 
-# 5.4.2 Coincidencia difusa para x casos categorizados en "OTROS".
+# 4.4.2 Coincidencia difusa para x casos categorizados en "OTROS".
 
 # Definir palabras clave por categoría para matching difuso
 palabras_clave <- list(
@@ -404,8 +376,7 @@ tabla_integrada |>
   count(escolaridad, sort = TRUE) |>
   head(20)
 
-# Contar registros antes de eliminar
-antes_supr_rev_man <- nrow(tabla_integrada)
+
 
 
 
@@ -502,6 +473,9 @@ cat("Porcentaje eliminado:",
     round((antes_filtro_cpod_32 - despues_filtro_cpod_32) / antes_filtro_cpod_32 * 100, 2), 
     "%\n\n")
 
+# Contar registros de escolaridad sujetos a revisión manual antes de eliminar
+antes_supr_rev_man <- nrow(tabla_integrada)
+
 # Eliminar registros con "REVISAR MANUAL" en escolaridad_final
 tabla_integrada <- tabla_integrada |>
   filter(escolaridad_final != "REVISAR MANUAL")
@@ -517,6 +491,41 @@ cat("Registros eliminados:", antes_supr_rev_man - despues_supr_rev_man, "\n")
 # Verificar que ya no hay "REVISAR MANUAL"
 tabla_integrada |>
   count(escolaridad_final, sort = TRUE)
+
+
+
+
+
+# 4.5 CLASIFICACIÓN POR PERCENTILES (ajustada a cada grupo de edad)
+tabla_integrada <- tabla_integrada |>
+  group_by(grupo_edad) |>
+  mutate(
+    percentil_cpod = percent_rank(cpo_individual),
+    estado_salud_percentiles = case_when(
+      percentil_cpod <= 0.20 ~ "MUY BAJO",
+      percentil_cpod <= 0.40 ~ "BAJO",
+      percentil_cpod <= 0.60 ~ "MODERADO",
+      percentil_cpod <= 0.80 ~ "ALTO",
+      percentil_cpod > 0.80 ~ "MUY ALTO",
+      TRUE ~ NA_character_
+    ),
+    .after = estado_salud_oms
+  ) |>
+  ungroup()
+
+# Verificar resultados
+cat("=== CLASIFICACIÓN OMS POR GRUPO DE EDAD ===\n")
+tabla_integrada |>
+  count(grupo_edad, estado_salud_oms)
+
+cat("\n=== CLASIFICACIÓN POR PERCENTILES ===\n")
+tabla_integrada |>
+  count(grupo_edad, estado_salud_percentiles)
+
+cat("\n=== COMPARACIÓN GENERAL ===\n")
+tabla_integrada |>
+  count(estado_salud_oms, estado_salud_percentiles) |>
+  pivot_wider(names_from = estado_salud_percentiles, values_from = n, values_fill = 0)
 
 
 
@@ -667,21 +676,6 @@ tabla_integrada |>
 
 # 8. ANÁLISIS EXPLORATORIO ----
 
-#8.1 GRÁFICA DE BARRAS PARA FRECUENCIA DE REGISTROS POR GRUPO DE EDAD 
-tabla_integrada |>
-  count(grupo_edad) |>
-  ggplot(aes(x = grupo_edad, y = n)) +
-  geom_col(fill = "#3498db", alpha = 0.85) +
-  geom_text(aes(label = n), vjust = -0.4, size = 3) +
-  labs(
-    title = "Distribución de registros por grupo de edad",
-    x = "Grupo de edad",
-    y = "Número de registros"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
 
 # Convertir variables categóricas a factores con orden lógico
 tabla_integrada <- tabla_integrada |>
@@ -703,6 +697,24 @@ tabla_integrada <- tabla_integrada |>
     ))
   )
 
+
+
+#8.1 GRÁFICA DE BARRAS PARA FRECUENCIA DE REGISTROS POR GRUPO DE EDAD 
+tabla_integrada |>
+  count(grupo_edad) |>
+  ggplot(aes(x = grupo_edad, y = n)) +
+  geom_col(fill = "#3498db", alpha = 0.85) +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  labs(
+    title = "Distribución de registros por grupo de edad",
+    x = "Grupo de edad",
+    y = "Número de registros"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
 # TABLA 1: Características sociodemográficas generales
 tabla_1 <- tabla_integrada |>
   select(sexo, grupo_edad, escolaridad_final, institucion_derechohabiencia_std) |>
@@ -718,7 +730,7 @@ tabla_1 <- tabla_integrada |>
     missing = "no"
   ) |>
   bold_labels() |>
-  modify_caption("**Tabla 1. Características sociodemográficas de la muestra (n = 69,840)**") |>
+  modify_caption(paste0("**Tabla 1. Características sociodemográficas de la muestra (n = ", format(nrow(tabla_integrada), big.mark = ","), ")**")) |>
   modify_footnote(everything() ~ "n (%)")
 
 tabla_1
