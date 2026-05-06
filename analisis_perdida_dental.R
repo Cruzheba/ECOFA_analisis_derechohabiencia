@@ -15,8 +15,6 @@ library(gtsummary)
 library(flextable)
 library(stringdist)
 
-
-
 # 2. CARGAR DATOS Y CREAR COLUMNA IDENTIFICADORA -------------------------------------------------------------------------------------------------------------------------------------------
 
 # 2.1 Interrogación ficha (variables sociodemográficas y derechohabiencia)
@@ -802,6 +800,64 @@ tabla_2 |>
 tabla_3 |>
   as_flex_table() |>
   save_as_docx(path = "tabla_3_derechohabiencia.docx")
+
+
+#PARA EJERCICIO DE SALUD PÚBLICA
+
+# LIMPIEZA DE ESTATURA
+limpiar_estatura <- function(x) {
+  paso1 <- x |>
+    str_to_lower() |>
+    str_remove_all("[m\\s|]") |>            # quitar "m", espacios, "|"
+    str_replace_all(",", ".") |>            # coma → punto decimal
+    str_replace_all(":", ".") |>            # "1:55" → "1.55"
+    str_replace_all("^-?(\\d)", "\\1") |>   # quitar signo negativo inicial
+    str_replace_all("^\\.(1\\.)", "\\1") |> # ".1.60" → "1.60"
+    str_replace_all("(\\d)-(\\d)", "\\1.\\2") |>  # "1-56" → "1.56"
+    str_replace_all("(\\d+\\.)(\\d{2})\\d+", "\\1\\2") |>  # truncar a 2 decimales
+    str_remove("\\.$") |>
+    str_replace_all("^[-\\.x/a-z0]+$", NA_character_) |>  # inválidos → NA
+    as.numeric()
+
+  paso2 <- if_else(paso1 > 3, paso1 / 100, paso1)
+
+  if_else(paso2 >= 1.0 & paso2 <= 2.5, paso2, NA_real_)
+}
+
+tabla_integrada <- tabla_integrada |>
+  mutate(estatura_final = limpiar_estatura(estatura))
+
+tabla_integrada |>
+  filter(is.na(estatura_final)) |>
+  count(estatura, sort = TRUE)
+
+
+#peso
+
+limpiar_peso <- function(x) {
+  paso1 <- suppressWarnings(
+    x |>
+      str_to_lower() |>
+      str_remove_all("[kg\\s]") |>          # quitar "kg", "kgs", espacios
+      str_replace_all(",", ".") |>          # normalizar decimal
+      str_replace_all("^[-\\.x/]+$", NA_character_) |>  # inválidos → NA
+      as.numeric()
+  )
+
+  # Validar rango fisiológico (30–300 kg)
+  if_else(paso1 >= 30 & paso1 <= 300, paso1, NA_real_)
+}
+
+tabla_integrada <- tabla_integrada |>
+  mutate(peso_final = limpiar_peso(peso))
+
+# Diagnóstico
+tabla_integrada |>
+  filter(is.na(peso_final)) |>
+  count(peso, sort = TRUE) |>
+  print(n = 20)
+
+
 
 # 9. MODELADO ESTADÍSTICO ----
 # TODO: Análisis de asociación entre derechohabiencia y pérdida dental
