@@ -857,7 +857,37 @@ tabla_integrada |>
   count(peso, sort = TRUE) |>
   print(n = 20)
 
+# IMC
+tabla_integrada <- tabla_integrada |>
+  mutate(imc = peso_final / estatura_final^2)
 
+tabla_integrada |>
+  summarise(
+    n = sum(!is.na(imc)),
+    min = min(imc, na.rm = TRUE),
+    media = mean(imc, na.rm = TRUE),
+    mediana = median(imc, na.rm = TRUE),
+    max = max(imc, na.rm = TRUE),
+    na = sum(is.na(imc))
+  )
+
+tabla_integrada <- tabla_integrada |>
+  mutate(
+    imc_categoria = case_when(
+      imc < 18.5              ~ "Bajo peso",
+      imc >= 18.5 & imc < 25 ~ "Normal",
+      imc >= 25   & imc < 30 ~ "Sobrepeso",
+      imc >= 30   & imc < 35 ~ "Obesidad I",
+      imc >= 35   & imc < 40 ~ "Obesidad II",
+      imc >= 40               ~ "Obesidad III",
+      .default = NA_character_
+    ) |> factor(levels = c("Bajo peso", "Normal", "Sobrepeso",
+                           "Obesidad I", "Obesidad II", "Obesidad III"))
+  )
+
+# Guardar datos procesados para uso en reportes y análisis adicionales
+saveRDS(tabla_integrada, "tabla_integrada.rds")
+cat("✅ tabla_integrada guardada en 'tabla_integrada.rds'\n\n")
 
 # 9. MODELADO ESTADÍSTICO ----
 # TODO: Análisis de asociación entre derechohabiencia y pérdida dental
